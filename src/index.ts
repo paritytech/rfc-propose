@@ -27,7 +27,7 @@ export async function run(): Promise<void> {
         body,
       });
     const githubEmojiReaction = async (reaction: GithubReactionType) =>
-      await octokitInstance.rest.reactions.createForIssue({
+      await octokitInstance.rest.reactions.createForIssueComment({
         ...respondParams,
         comment_id: event.comment.id,
         content: reaction,
