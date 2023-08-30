@@ -13,6 +13,6 @@ jobs:
     if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/rfc-propose') }}
     runs-on: ubuntu-latest
     steps:
-      - uses: paritytech/rfc-propose@main
+      - uses: paritytech/rfc-propose@rzadp/instructions
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
