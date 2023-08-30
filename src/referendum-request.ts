@@ -49,6 +49,12 @@ export const handleRFCReferendumRequest = async (
   const message =
     `Hey @${requester}, ` +
     `[here is a link](${transactionCreationUrl}) you can use to create the referendum aiming to approve this RFC number ${rfcNumber}.` +
+    `\n\n<details><summary>Instructions</summary>\n` +
+    `1. Open the [link](${transactionCreationUrl})` +
+    `\n2. Switch to the \`Submission\` tab.` +
+    `\n<img src="https://raw.githubusercontent.com/paritytech/rfc-propose/516e5e30d76ab78bd783bc864025bc635161cb6d/src/images/submission_tab.png" />` +
+    `\n3. Adjust the transaction if needed (for example, the proposal Origin).` +
+    `\n4. Submit Transaction</details>` +
     `\n\nIt is based on commit hash [${extractCommitHash(rfcFile.raw_url)}](${rfcFile.raw_url}).` +
     `\n\nThe proposed remark text is: \`${remarkText}\`.`;
 
