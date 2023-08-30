@@ -52,7 +52,7 @@ export const handleRFCReferendumRequest = async (
     `\n\n<details><summary>Instructions</summary>` +
     `\n\n1. Open the [link](${transactionCreationUrl}).` +
     `\n\n2. Switch to the \`Submission\` tab.` +
-    `\n<img width="480px" src="https://raw.githubusercontent.com/paritytech/rfc-propose/516e5e30d76ab78bd783bc864025bc635161cb6d/src/images/submission_tab.png" />` +
+    `\n<img width="480px" src="https://raw.githubusercontent.com/paritytech/rfc-propose/main/src/images/submission_tab.png" />` +
     `\n\n3. Adjust the transaction if needed (for example, the proposal Origin).` +
     `\n\n4. Submit the Transaction` +
     `\n</details>\n\n---` +
