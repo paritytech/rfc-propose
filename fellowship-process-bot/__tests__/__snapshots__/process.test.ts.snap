@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`processCmd 1`] = `
+{
+  "createComment": "RFC 14 approved. Merging d4589ded into master",
+  "merge": "d4589ded275b721e33cbeb1e7a27e2f29899cdc3",
+}
+`;

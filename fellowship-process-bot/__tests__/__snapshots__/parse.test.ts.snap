@@ -1,0 +1,58 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`parse 1`] = `
+{
+  "getArg": [Function],
+}
+`;
+
+exports[`parse 2`] = `
+{
+  "getArg": [Function],
+}
+`;
+
+exports[`parse 3`] = `
+{
+  "getArg": [Function],
+}
+`;
+
+exports[`parse 4`] = `
+{
+  "cmd": "cmd",
+  "getArg": [Function],
+  "namedArgs": {},
+  "rawArgs": "",
+  "unnamedArgs": [],
+}
+`;
+
+exports[`parse 5`] = `
+{
+  "cmd": "cmd",
+  "getArg": [Function],
+  "namedArgs": {},
+  "rawArgs": " a b c",
+  "unnamedArgs": [
+    "a",
+    "b",
+    "c",
+  ],
+}
+`;
+
+exports[`parse 6`] = `
+{
+  "cmd": "test",
+  "getArg": [Function],
+  "namedArgs": {
+    "val": "123",
+    "val2": "val2",
+  },
+  "rawArgs": " val=123 val2=val2 val3",
+  "unnamedArgs": [
+    "val3",
+  ],
+}
+`;

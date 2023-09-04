@@ -1,0 +1,6 @@
+name: Polkadot Fellowship Process Bot
+description: Process Bot to manage the Polkadot Fellowship repo
+author: Bryan Chen
+runs:
+  using: 'node16'
+  main: 'dist/index.js'
