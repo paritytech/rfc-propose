@@ -1,19 +1,17 @@
 import { ApiPromise, WsProvider } from "@polkadot/api";
 
-import { byteSize, hashProposal } from "./util";
+import { POLKADOT_APPS_URL, PROVIDER_URL } from "./constants";
+import { byteSize } from "./util";
 
-const PROVIDER_URL = "wss://polkadot-collectives-rpc.polkadot.io";
-const POLKADOT_APPS_URL = `https://polkadot.js.org/apps/?rpc=${encodeURIComponent(PROVIDER_URL)}#/`;
 const polkadotAppsDecodeURL = (transactionHex: string) => `${POLKADOT_APPS_URL}extrinsics/decode/${transactionHex}`;
 
 export const createReferendumTx = async (opts: {
-  rfcNumber: string;
-  rfcProposalText: string;
+  remarkText: string;
 }): Promise<{ transactionHex: string; transactionCreationUrl: string; remarkText: string }> => {
   const api = new ApiPromise({ provider: new WsProvider(PROVIDER_URL) });
   await api.isReadyOrError;
 
-  const remarkText = `RFC_APPROVE(${opts.rfcNumber},${hashProposal(opts.rfcProposalText)})`;
+  const { remarkText } = opts;
   const remarkTx = api.tx.system.remark(remarkText);
 
   if (byteSize(remarkTx) >= 128) {

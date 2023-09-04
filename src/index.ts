@@ -3,11 +3,13 @@ import * as githubActions from "@actions/github";
 import { envVar } from "@eng-automation/js";
 import type { IssueCommentCreatedEvent } from "@octokit/webhooks-types";
 
-import { handleRFCReferendumRequest } from "./referendum-request";
+import { handleCommand } from "./handle-command";
 import { GithubReactionType } from "./types";
 
 export async function run(): Promise<void> {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    const [_, command, ...args] = githubActions.context.payload.comment?.body.split(" ") as (string | undefined)[];
     const respondParams = {
       owner: githubActions.context.repo.owner,
       repo: githubActions.context.repo.repo,
@@ -35,7 +37,7 @@ export async function run(): Promise<void> {
 
     await githubEmojiReaction("eyes");
     try {
-      const result = await handleRFCReferendumRequest(event, requester, octokitInstance);
+      const result = await handleCommand({ command, args, requestState: { event, requester, octokitInstance } });
       if (result.success) {
         await githubComment(result.message);
         await githubEmojiReaction("rocket");
@@ -45,9 +47,10 @@ export async function run(): Promise<void> {
       }
     } catch (e) {
       await githubComment(
-        `@${requester} Creating RFC proposal referendum failed :( You can open an issue [here](https://github.com/paritytech/rfc-propose/issues/new).`,
+        `@${requester} Handling the RFC command failed :( You can open an issue [here](https://github.com/paritytech/rfc-propose/issues/new).`,
       );
       await githubEmojiReaction("confused");
+      throw e;
     }
   } catch (error) {
     core.setFailed(error instanceof Error ? error.message : String(error));
