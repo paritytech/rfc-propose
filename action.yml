@@ -1,5 +1,5 @@
-name: '@paritytech/rfc-propose'
-description: 'A GitHub Action aiming to help in the creation of RFC proposal referenda.'
+name: '@paritytech/rfc-action'
+description: 'A GitHub Action aiming to help in the process of the RFC proposal referenda.'
 author: 'Parity Technologies'
 
 runs:
