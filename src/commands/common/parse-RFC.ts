@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 
 import { RequestResultFailed, RequestState } from "../../types";
-import { hashProposal, userError } from "../../util";
+import { hashProposal, userProcessError } from "../../util";
 
 export type ParseRFCResult = {
   approveRemarkText: string;
@@ -28,10 +28,10 @@ export const parseRFC = async (requestState: RequestState): Promise<RequestResul
     (file) => file.status === "added" && file.filename.startsWith("text/") && file.filename.includes(".md"),
   );
   if (addedMarkdownFiles.length < 1) {
-    return userError(requestState, "RFC markdown file was not found in the PR.");
+    return userProcessError(requestState, "RFC markdown file was not found in the PR.");
   }
   if (addedMarkdownFiles.length > 1) {
-    return userError(
+    return userProcessError(
       requestState,
       `The system can only parse **one** markdown file but more than one were found: ${addedMarkdownFiles
         .map((file) => file.filename)
@@ -42,7 +42,7 @@ export const parseRFC = async (requestState: RequestState): Promise<RequestResul
   const rawText = await (await fetch(rfcFile.raw_url)).text();
   const rfcNumber: string | undefined = rfcFile.filename.split("text/")[1].split("-")[0];
   if (rfcNumber === undefined) {
-    return userError(
+    return userProcessError(
       requestState,
       "Failed to read the RFC number from the filename. Please follow the format: `NNNN-name.md`. Example: `0001-example-proposal.md`",
     );

@@ -24,7 +24,11 @@ export const extractCommitHash = (rawUrl: string): string => {
   return match;
 };
 
-export const userError = (requestState: RequestState, message: string): RequestResult & { success: false } =>
+/**
+ * Constructs a message to the user when the PR is detected to be not adhering to the process,
+ * for example - incorrectly named markdown file with the text of the proposal.
+ */
+export const userProcessError = (requestState: RequestState, message: string): RequestResult & { success: false } =>
   ({
     success: false,
     errorMessage: `@${requestState.requester} ${message} Please double check the [Process](https://github.com/polkadot-fellows/RFCs#process).`,
