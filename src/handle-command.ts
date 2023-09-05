@@ -8,10 +8,10 @@ export const handleCommand = async (opts: {
   args: (string | undefined)[];
 }): Promise<RequestResult> => {
   const { command, requestState, args } = opts;
-  if (command === "propose") {
+  if (command?.toLowerCase() === "propose") {
     return await handleProposeCommand(requestState);
   }
-  if (command === "process") {
+  if (command?.toLowerCase() === "process") {
     const arg = args[0];
     if (!arg && !arg?.startsWith("0x")) {
       return {
