@@ -25,6 +25,10 @@ export const handleProcessCommand = async (
   requestState: RequestState,
   blockHash: string | undefined,
 ): Promise<RequestResult> => {
+  const parseRFCResult = await parseRFC(requestState);
+  if ("success" in parseRFCResult) {
+    return parseRFCResult;
+  }
   if (!blockHash && !blockHash?.startsWith("0x")) {
     return {
       success: false,
@@ -34,10 +38,6 @@ export const handleProcessCommand = async (
         "```\n/rfc process 0x39fbc57d047c71f553aa42824599a7686aea5c9aab4111f6b836d35d3d058162\n```\n\n" +
         blockHashInstructions,
     };
-  }
-  const parseRFCResult = await parseRFC(requestState);
-  if ("success" in parseRFCResult) {
-    return parseRFCResult;
   }
 
   const referendum = await findReferendum({ parseRFCResult, blockHash });
