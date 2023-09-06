@@ -1,16 +1,20 @@
+import fs from "fs";
+
 import { findReferendum } from "./find-referendum";
+import { getApproveRemarkText, getRejectRemarkText } from "./parse-RFC";
 
 describe("findReferendum", () => {
-  test("Finds the 0005 referendum", async () => {
-    // https://collectives.subsquare.io/fellowship/referenda/13
+  test("Finds the 0014 referendum", async () => {
+    // https://collectives.polkassembly.io/member-referenda/16
+    const rfcNumber = "0014";
+    const text = fs.readFileSync("src/examples/0014-improve-locking-mechanism-for-parachains.md").toString();
     const result = await findReferendum({
-      blockHash: "0x24c6f29be6db3f87bcce2de6b4b73af1a52fe24db5da20e0841b47fa5f471bf7",
+      blockHash: "0x39fbc57d047c71f553aa42824599a7686aea5c9aab4111f6b836d35d3d058162",
       parseRFCResult: {
-        rfcNumber: "0005",
+        rfcNumber,
         rfcFileRawUrl: "",
-        // Typo in the RFC: APPROVE_RFC instead of RFC_APPROVE.
-        approveRemarkText: "APPROVE_RFC(0005,9cbabfa80598d2935830c09c18e0a0e4ed8227b8c8f744f1f4a41d8597bb6d44)",
-        rejectRemarkText: "REJECT_RFC(0005,9cbabfa80598d2935830c09c18e0a0e4ed8227b8c8f744f1f4a41d8597bb6d44)",
+        approveRemarkText: getApproveRemarkText(rfcNumber, text),
+        rejectRemarkText: getRejectRemarkText(rfcNumber, text),
       },
     });
 
