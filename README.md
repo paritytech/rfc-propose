@@ -30,6 +30,9 @@ After the RFC referendum was confirmed, it processes the Pull Request (by mergin
 /rfc process <block hash of when the referendum was confirmed>
 ```
 
+If you're not sure where to get this block hash,
+send a `/rfc process` command and the action will respond with more instructions.
+
 ## Configuration
 
 To use the action in a repository, add a job that is going to run on specific comments on PRs:
@@ -61,4 +64,7 @@ jobs:
 
 The action uses the `GH_TOKEN` environment variable supplied to it.
 
-The built-in `secrets.GITHUB_TOKEN` can be used, as long as it has the `pull-requests` write permissions.
+The built-in `secrets.GITHUB_TOKEN` can be used, as long as it has the necessary permissions.
+
+- `pull-requests: write` permission is used to write comments in the PR.
+- `contents: write` permission is used to close/merge the PR.
