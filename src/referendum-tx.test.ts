@@ -1,6 +1,6 @@
 import * as fs from "fs";
 
-import { getApproveRemarkText } from "./commands/common/parse-RFC";
+import { getApproveRemarkText } from "./parse-RFC";
 import { createReferendumTx } from "./referendum-tx";
 
 describe("createReferendumTx", () => {

@@ -1,7 +1,7 @@
-import { createReferendumTx } from "../referendum-tx";
-import { RequestResult, RequestState } from "../types";
-import { extractCommitHash } from "../util";
-import { parseRFC } from "./common/parse-RFC";
+import { parseRFC } from "./parse-RFC";
+import { createReferendumTx } from "./referendum-tx";
+import { RequestResult, RequestState } from "./types";
+import { extractCommitHash } from "./util";
 
 export const handleProposeCommand = async (requestState: RequestState): Promise<RequestResult> => {
   const parseRFCResult = await parseRFC(requestState);

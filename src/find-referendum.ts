@@ -1,7 +1,7 @@
 import { ApiPromise, WsProvider } from "@polkadot/api";
 
-import { ParseRFCResult } from "./commands/common/parse-RFC";
 import { PROVIDER_URL } from "./constants";
+import { ParseRFCResult } from "./parse-RFC";
 
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 

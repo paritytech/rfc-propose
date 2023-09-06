@@ -1,5 +1,5 @@
-import { handleProcessCommand } from "./commands/process";
-import { handleProposeCommand } from "./commands/propose";
+import { handleProcessCommand } from "./process";
+import { handleProposeCommand } from "./propose";
 import { RequestResult, RequestState } from "./types";
 
 export const handleCommand = async (opts: {

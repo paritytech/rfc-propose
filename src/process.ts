@@ -1,8 +1,8 @@
 import * as githubActions from "@actions/github";
 
-import { findReferendum } from "../find-referendum";
-import { RequestResult, RequestState } from "../types";
-import { parseRFC } from "./common/parse-RFC";
+import { findReferendum } from "./find-referendum";
+import { parseRFC } from "./parse-RFC";
+import { RequestResult, RequestState } from "./types";
 
 const blockHashInstructions =
   `<details><summary>Instructions to find the block hash</summary>` +

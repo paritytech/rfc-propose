@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 
-import { RequestResultFailed, RequestState } from "../../types";
-import { hashProposal, userProcessError } from "../../util";
+import { RequestResultFailed, RequestState } from "./types";
+import { hashProposal, userProcessError } from "./util";
 
 export type ParseRFCResult = {
   approveRemarkText: string;
