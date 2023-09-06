@@ -2,7 +2,6 @@ import * as githubActions from "@actions/github";
 
 import { findReferendum } from "../find-referendum";
 import { RequestResult, RequestState } from "../types";
-import { userProcessError } from "../util";
 import { parseRFC } from "./common/parse-RFC";
 
 export const handleProcessCommand = async (requestState: RequestState, blockHash: string): Promise<RequestResult> => {
@@ -13,7 +12,10 @@ export const handleProcessCommand = async (requestState: RequestState, blockHash
 
   const referendum = await findReferendum({ parseRFCResult, blockHash });
   if (!referendum) {
-    return userProcessError(requestState, `Unable to find the referendum confirm event in the given block.`);
+    return {
+      success: false,
+      errorMessage: `Unable to find the referendum confirm event in the given block.`,
+    };
   }
   if ("approved" in referendum && referendum.approved) {
     await requestState.octokitInstance.rest.pulls.merge({
