@@ -57,6 +57,7 @@ jobs:
       - uses: paritytech/rfc-action@main
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PROVIDER_URL: "wss://polkadot-collectives-rpc.polkadot.io" # Optional.
 
 ```
 
@@ -68,3 +69,7 @@ The built-in `secrets.GITHUB_TOKEN` can be used, as long as it has the necessary
 
 - `pull-requests: write` permission is used to write comments in the PR.
 - `contents: write` permission is used to close/merge the PR.
+
+The `PROVIDER_URL` variable can be specified to override the default public endpoint to the Collectives parachain.
+
+A full archive node is needed to process the confirmed referenda.
