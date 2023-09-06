@@ -35,7 +35,7 @@ After the RFC referendum was confirmed, it processes the Pull Request (by mergin
 To use the action in a repository, add a job that is going to run on specific comments on PRs:
 
 ```yaml
-name: RFC propose
+name: RFC action
 
 on:
   issue_comment:
@@ -43,10 +43,11 @@ on:
 
 permissions:
   pull-requests: write
+  contents: write
 
 jobs:
-  rfc-propose:
-    name: Propose an RFC creation transaction
+  rfc-action:
+    name: Handle an RFC-relate command in a RFC proposal PR
     if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/rfc') }}
     runs-on: ubuntu-latest
     steps:
