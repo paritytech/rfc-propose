@@ -24,7 +24,9 @@ export const findReferendum = async (opts: {
         string,
         any
       >;
-      const proposalHash = info?.ongoing?.proposal?.lookup?.hash; // TODO: handle inlined proposal as well
+      // TODO: Handle inlined proposal as well.
+      // https://github.com/paritytech/rfc-action/issues/12
+      const proposalHash = info?.ongoing?.proposal?.lookup?.hash;
 
       if (proposalHash === api.tx.system.remark(opts.parseRFCResult.approveRemarkText).method.hash.toHex()) {
         await api.disconnect();
