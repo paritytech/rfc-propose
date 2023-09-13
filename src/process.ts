@@ -52,6 +52,7 @@ export const handleProcessCommand = async (
       owner: githubActions.context.repo.owner,
       repo: githubActions.context.repo.repo,
       pull_number: githubActions.context.issue.number,
+      merge_method: "squash",
     });
     return { success: true, message: "The on-chain referendum has approved the RFC." };
   }
