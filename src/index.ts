@@ -45,11 +45,10 @@ export async function run(): Promise<void> {
         await githubComment(result.errorMessage);
         await githubEmojiReaction("confused");
       }
-      throw new Error("test");
     } catch (e) {
       const logs = `${githubActions.context.serverUrl}/${githubActions.context.repo.owner}/${githubActions.context.repo.repo}/actions/runs/${githubActions.context.runId}`;
       await githubComment(
-        `@${requester} Handling the RFC command failed :(\nYou can open an issue [here](https://github.com/paritytech/rfc-propose/issues/new).\nSee logs [here](${logs}).`,
+        `@${requester} Handling the RFC command failed :(\nYou can open an issue [here](https://github.com/paritytech/rfc-propose/issues/new).\nSee the logs [here](${logs}).`,
       );
       await githubEmojiReaction("confused");
       throw e;
