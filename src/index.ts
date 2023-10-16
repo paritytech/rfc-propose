@@ -45,6 +45,7 @@ export async function run(): Promise<void> {
         await githubComment(result.errorMessage);
         await githubEmojiReaction("confused");
       }
+      throw new Error("test");
     } catch (e) {
       const logs = `${githubActions.context.serverUrl}/${githubActions.context.repo.owner}/${githubActions.context.repo.repo}/actions/runs/${githubActions.context.runId}`;
       await githubComment(
