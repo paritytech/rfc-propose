@@ -46,8 +46,9 @@ export async function run(): Promise<void> {
         await githubEmojiReaction("confused");
       }
     } catch (e) {
+      const logs = `${githubActions.context.serverUrl}/${githubActions.context.repo.owner}/${githubActions.context.repo.repo}/actions/runs/${githubActions.context.runId}`;
       await githubComment(
-        `@${requester} Handling the RFC command failed :( You can open an issue [here](https://github.com/paritytech/rfc-propose/issues/new).`,
+        `@${requester} Handling the RFC command failed :(\nYou can open an issue [here](https://github.com/paritytech/rfc-propose/issues/new).\nSee logs [here](${logs}).`,
       );
       await githubEmojiReaction("confused");
       throw e;
