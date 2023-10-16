@@ -53,6 +53,7 @@ export async function run(): Promise<void> {
       throw e;
     }
   } catch (error) {
+    core.error((error as Error).stack ?? String(error));
     core.setFailed(error instanceof Error ? error.message : String(error));
   }
 }

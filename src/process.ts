@@ -48,19 +48,37 @@ export const handleProcessCommand = async (
     };
   }
   if ("approved" in referendum && referendum.approved) {
-    await requestState.octokitInstance.rest.pulls.merge({
+    try {
+      await requestState.octokitInstance.rest.pulls.merge({
+        owner: githubActions.context.repo.owner,
+        repo: githubActions.context.repo.repo,
+        pull_number: githubActions.context.issue.number,
+        merge_method: "squash",
+      });
+      return { success: true, message: "The on-chain referendum has approved the RFC." };
+    } catch (e) {
+      requestState.octokitInstance.log.error(String(e));
+      return {
+        success: false,
+        errorMessage:
+          "The on-chain referendum has approved the RFC, however I was not able to merge the PR automatically.",
+      };
+    }
+  }
+  try {
+    await requestState.octokitInstance.rest.pulls.update({
       owner: githubActions.context.repo.owner,
       repo: githubActions.context.repo.repo,
       pull_number: githubActions.context.issue.number,
-      merge_method: "squash",
+      state: "closed",
     });
-    return { success: true, message: "The on-chain referendum has approved the RFC." };
+    return { success: true, message: "The on-chain referendum has rejected the RFC." };
+  } catch (e) {
+    requestState.octokitInstance.log.error(String(e));
+    return {
+      success: false,
+      errorMessage:
+        "The on-chain referendum has rejected the RFC, however I was not able to merge the PR automatically.",
+    };
   }
-  await requestState.octokitInstance.rest.pulls.update({
-    owner: githubActions.context.repo.owner,
-    repo: githubActions.context.repo.repo,
-    pull_number: githubActions.context.issue.number,
-    state: "closed",
-  });
-  return { success: true, message: "The on-chain referendum has rejected the RFC." };
 };
