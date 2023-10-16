@@ -6,11 +6,17 @@ import { ParseRFCResult } from "./parse-RFC";
 
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 
-export const findReferendum = async (opts: {
+/**
+ * @returns The state of the referendum, which can be:
+ * - approved,
+ * - rejected,
+ * - null, meaning that the referendum in a proper state with a proper remark has not been found.
+ */
+export const findReferendumState = async (opts: {
   parseRFCResult: ParseRFCResult;
   blockHash: string;
   providerUrl?: string | undefined;
-}): Promise<null | { approved: boolean }> => {
+}): Promise<null | "approved" | "rejected"> => {
   const api = new ApiPromise({ provider: new WsProvider(opts.providerUrl ?? PROVIDER_URL) });
   await api.isReadyOrError;
 
@@ -37,11 +43,11 @@ export const findReferendum = async (opts: {
 
       if (remarkMatchesProposal(api.tx.system.remark(opts.parseRFCResult.approveRemarkText))) {
         await api.disconnect();
-        return { approved: true };
+        return "approved";
       }
       if (remarkMatchesProposal(api.tx.system.remark(opts.parseRFCResult.rejectRemarkText))) {
         await api.disconnect();
-        return { approved: false };
+        return "rejected";
       }
     }
   }

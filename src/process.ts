@@ -1,6 +1,6 @@
 import * as githubActions from "@actions/github";
 
-import { findReferendum } from "./find-referendum";
+import { findReferendumState } from "./find-referendum-state";
 import { parseRFC } from "./parse-RFC";
 import { RequestResult, RequestState } from "./types";
 
@@ -40,14 +40,13 @@ export const handleProcessCommand = async (
     };
   }
 
-  const referendum = await findReferendum({ parseRFCResult, blockHash });
-  if (!referendum) {
+  const referendumState = await findReferendumState({ parseRFCResult, blockHash });
+  if (!referendumState) {
     return {
       success: false,
       errorMessage: `Unable to find the referendum confirm event in the given block.\n\n` + blockHashInstructions,
     };
-  }
-  if ("approved" in referendum && referendum.approved) {
+  } else if (referendumState === "approved") {
     try {
       await requestState.octokitInstance.rest.pulls.merge({
         owner: githubActions.context.repo.owner,
@@ -64,21 +63,24 @@ export const handleProcessCommand = async (
           "The on-chain referendum has approved the RFC, however I was not able to merge the PR automatically.",
       };
     }
-  }
-  try {
-    await requestState.octokitInstance.rest.pulls.update({
-      owner: githubActions.context.repo.owner,
-      repo: githubActions.context.repo.repo,
-      pull_number: githubActions.context.issue.number,
-      state: "closed",
-    });
-    return { success: true, message: "The on-chain referendum has rejected the RFC." };
-  } catch (e) {
-    requestState.octokitInstance.log.error(String(e));
-    return {
-      success: false,
-      errorMessage:
-        "The on-chain referendum has rejected the RFC, however I was not able to merge the PR automatically.",
-    };
+  } else if (referendumState === "rejected") {
+    try {
+      await requestState.octokitInstance.rest.pulls.update({
+        owner: githubActions.context.repo.owner,
+        repo: githubActions.context.repo.repo,
+        pull_number: githubActions.context.issue.number,
+        state: "closed",
+      });
+      return { success: true, message: "The on-chain referendum has rejected the RFC." };
+    } catch (e) {
+      requestState.octokitInstance.log.error(String(e));
+      return {
+        success: false,
+        errorMessage:
+          "The on-chain referendum has rejected the RFC, however I was not able to close the PR automatically.",
+      };
+    }
+  } else {
+    throw new Error(`The referendum is in an unknown state: "${String(referendumState)}".`);
   }
 };

@@ -1,6 +1,6 @@
 import fs from "fs";
 
-import { findReferendum } from "./find-referendum";
+import { findReferendumState } from "./find-referendum-state";
 import { getApproveRemarkText, getRejectRemarkText } from "./parse-RFC";
 
 describe("findReferendum", () => {
@@ -8,7 +8,7 @@ describe("findReferendum", () => {
     // https://collectives.polkassembly.io/member-referenda/16
     const rfcNumber = "0014";
     const text = fs.readFileSync("src/examples/0014-improve-locking-mechanism-for-parachains.md").toString();
-    const result = await findReferendum({
+    const result = await findReferendumState({
       blockHash: "0x39fbc57d047c71f553aa42824599a7686aea5c9aab4111f6b836d35d3d058162",
       parseRFCResult: {
         rfcNumber,
@@ -18,7 +18,7 @@ describe("findReferendum", () => {
       },
     });
 
-    expect(result && "approved" in result && result.approved).toBeTruthy();
+    expect(result).toEqual("approved");
   });
 
   test.skip("Finds the (inlined) 0014 referendum", async () => {
@@ -41,7 +41,7 @@ describe("findReferendum", () => {
 
     const rfcNumber = "0014";
     const text = fs.readFileSync("src/examples/0014-improve-locking-mechanism-for-parachains.md").toString();
-    const result = await findReferendum({
+    const result = await findReferendumState({
       providerUrl,
       blockHash,
       parseRFCResult: {
@@ -52,6 +52,6 @@ describe("findReferendum", () => {
       },
     });
 
-    expect(result && "approved" in result && result.approved).toBeTruthy();
+    expect(result).toEqual("approved");
   });
 });
