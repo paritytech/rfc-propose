@@ -61,9 +61,7 @@ export const handleProcessCommand = async (
   } else if (referendumState === "approved") {
     try {
       const mergeMethod: PullRequestMergeMethod = "SQUASH";
-      // const prId = (githubActions.context.issue as unknown as Issue).node_id;
-      const issue = githubActions.context.payload.issue as Issue;
-      const prId = issue.node_id;
+      const prId = (githubActions.context.payload.issue as Issue).node_id;
       octokit.log.warn(
         `Trying to squash-merge PR #${githubActions.context.issue.number} in ${githubActions.context.repo.owner}/${githubActions.context.repo.repo}. The PR's node_id is ${prId}`,
       );
