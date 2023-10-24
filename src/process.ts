@@ -50,7 +50,7 @@ export const handleProcessCommand = async (
     };
   } else if (referendumState === "approved") {
     try {
-      octokit.log.info(
+      octokit.log.warn(
         `Trying to merge PR #${githubActions.context.issue.number} in ${githubActions.context.repo.owner}/${githubActions.context.repo.repo}.`,
       );
       await requestState.octokitInstance.rest.pulls.merge({
