@@ -40,6 +40,8 @@ export const handleProcessCommand = async (
     };
   }
 
+  const { octokitInstance: octokit } = requestState;
+
   const referendumState = await findReferendumState({ parseRFCResult, blockHash });
   if (!referendumState) {
     return {
@@ -48,6 +50,9 @@ export const handleProcessCommand = async (
     };
   } else if (referendumState === "approved") {
     try {
+      octokit.log.info(
+        `Trying to merge PR #${githubActions.context.issue.number} in ${githubActions.context.repo.owner}/${githubActions.context.repo.repo}.`,
+      );
       await requestState.octokitInstance.rest.pulls.merge({
         owner: githubActions.context.repo.owner,
         repo: githubActions.context.repo.repo,
@@ -56,7 +61,7 @@ export const handleProcessCommand = async (
       });
       return { success: true, message: "The on-chain referendum has approved the RFC." };
     } catch (e) {
-      requestState.octokitInstance.log.error(String(e));
+      octokit.log.error(String(e));
       return {
         success: false,
         errorMessage:
@@ -65,7 +70,7 @@ export const handleProcessCommand = async (
     }
   } else if (referendumState === "rejected") {
     try {
-      await requestState.octokitInstance.rest.pulls.update({
+      await octokit.rest.pulls.update({
         owner: githubActions.context.repo.owner,
         repo: githubActions.context.repo.repo,
         pull_number: githubActions.context.issue.number,
@@ -73,7 +78,7 @@ export const handleProcessCommand = async (
       });
       return { success: true, message: "The on-chain referendum has rejected the RFC." };
     } catch (e) {
-      requestState.octokitInstance.log.error(String(e));
+      octokit.log.error(String(e));
       return {
         success: false,
         errorMessage:
