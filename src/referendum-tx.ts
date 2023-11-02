@@ -7,7 +7,7 @@ import {
   cCollectives_polkadot_runtimeOriginCaller,
   cFrame_supportTraitsPreimagesBounded,
   cFrame_supportTraitsScheduleDispatchTime,
-} from "./referendum-codecs";
+} from "./referendum-tx-codecs";
 
 const polkadotAppsDecodeURL = (transactionHex: string) => `${POLKADOT_APPS_URL}extrinsics/decode/${transactionHex}`;
 
