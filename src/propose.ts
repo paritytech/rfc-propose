@@ -9,7 +9,7 @@ export const handleProposeCommand = async (requestState: RequestState): Promise<
     return parseRFCResult;
   }
 
-  const { transactionCreationUrl, remarkText } = await createReferendumTx({
+  const { transactionCreationUrl, remarkText } = createReferendumTx({
     remarkText: parseRFCResult.approveRemarkText,
   });
 
