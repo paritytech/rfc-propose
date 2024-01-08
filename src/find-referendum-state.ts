@@ -21,11 +21,12 @@ export const findReferendumState = async (opts: {
   const api = new ApiPromise({ provider: new WsProvider(opts.providerUrl ?? PROVIDER_URL) });
   try {
     await api.isReadyOrError;
-  } catch (e) {
+  } catch (e: any) {
     await api.disconnect();
-    console.log("isReadyOrError error:")
-    console.log(JSON.stringify(e))
-    throw e;
+    // The error could be an ErrorEvent from "ws" library:
+    // https://github.com/websockets/ws/blob/d343a0cf7bba29a4e14217cb010446bec8fdf444/lib/event-target.js#L105
+    // In that case, we pick out the underlying error.
+    throw e.error ?? e;
   }
 
   const apiAt = await api.at(opts.blockHash);
