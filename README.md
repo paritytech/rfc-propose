@@ -53,6 +53,7 @@ jobs:
     name: Handle an RFC-relate command in a RFC proposal PR
     if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/rfc') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: paritytech/rfc-action@main
     env:

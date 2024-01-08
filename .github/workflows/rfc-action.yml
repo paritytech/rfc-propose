@@ -12,6 +12,7 @@ jobs:
     name: Handle an RFC command
     if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/rfc') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: paritytech/rfc-action@main
     env:
