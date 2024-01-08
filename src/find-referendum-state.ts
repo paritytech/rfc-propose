@@ -19,7 +19,12 @@ export const findReferendumState = async (opts: {
   providerUrl?: string | undefined;
 }): Promise<null | "approved" | "rejected"> => {
   const api = new ApiPromise({ provider: new WsProvider(opts.providerUrl ?? PROVIDER_URL) });
-  await api.isReadyOrError;
+  try {
+    await api.isReadyOrError;
+  } catch (e) {
+    await api.disconnect();
+    throw e;
+  }
 
   const apiAt = await api.at(opts.blockHash);
   // The `referendumInfoFor()` function exposes more data at blocks before the referendum got approved.
