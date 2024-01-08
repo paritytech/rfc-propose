@@ -23,9 +23,11 @@ export const findReferendumState = async (opts: {
     await api.isReadyOrError;
   } catch (e: any) {
     await api.disconnect();
-    // The error could be an ErrorEvent from "ws" library:
-    // https://github.com/websockets/ws/blob/d343a0cf7bba29a4e14217cb010446bec8fdf444/lib/event-target.js#L105
-    // In that case, we pick out the underlying error.
+    /**
+     * The error could be an ErrorEvent from "ws" library:
+     * https://github.com/websockets/ws/blob/d343a0cf7bba29a4e14217cb010446bec8fdf444/lib/event-target.js#L105
+     * In that case, we pick the underlying error.
+     */
     throw e.error ?? e;
   }
 
