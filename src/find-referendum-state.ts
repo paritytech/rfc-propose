@@ -23,6 +23,8 @@ export const findReferendumState = async (opts: {
     await api.isReadyOrError;
   } catch (e) {
     await api.disconnect();
+    console.log("isReadyOrError error:")
+    console.log(JSON.stringify(e))
     throw e;
   }
 
