@@ -54,7 +54,7 @@ export const getAllPRs = async (
   return prRemarks;
 };
 
-export const getAllRFCRemarks = async (startDate: Date): Promise<string[]> => {
+export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; remark: string }[]> => {
   const wsProvider = new WsProvider("wss://polkadot-collectives-rpc.polkadot.io");
   try {
     const api = await ApiPromise.create({ provider: wsProvider });
@@ -66,7 +66,7 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<string[]> => {
       throw new Error(`Query result is not a number: ${typeof query}`);
     }
     const ongoing: OnGoing[] = [];
-    const remarks: string[] = [];
+    const remarks: { url: string; remark: string }[] = [];
     for (const index of Array.from(Array(query).keys())) {
       console.log("Fetching element %s/%s", index + 1, query);
 
@@ -90,7 +90,10 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<string[]> => {
         ) {
           const [call] = referendaData.onchainData.inlineCall.call.args;
           const remark = hexToString(call.value);
-          remarks.push(remark);
+          remarks.push({
+            remark,
+            url: `https://collectives.polkassembly.io/referenda/${referendaData.polkassemblyId}`,
+          });
         }
       }
     }
@@ -106,7 +109,7 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<string[]> => {
   }
 };
 
-export const cron = async (startDate: Date, owner: string, repo: string, octokit: OctokitInstance) => {
+export const cron = async (startDate: Date, owner: string, repo: string, octokit: OctokitInstance): Promise<void> => {
   const remarks = await getAllRFCRemarks(startDate);
   if (remarks.length === 0) {
     console.warn("No ongoing RFCs made from pull requesting. Shuting down");
@@ -115,6 +118,15 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
   console.log("Found remarks", remarks);
   const prRemarks = await getAllPRs(octokit, { owner, repo });
   console.log("Found all PR remarks", prRemarks);
+
+  for (const [pr, remark] of prRemarks) {
+    const match = remarks.find((r) => r.remark === remark);
+    if (match) {
+      console.log("Found existing referenda for PR #%s", pr);
+      const msg = `Voting for this referenda is **ongoing**.\n\nVote for it [here]${match.url}`;
+      await octokit.rest.issues.createComment({ owner, repo, issue_number: pr, body: msg });
+    }
+  }
 };
 
 interface OnGoing {
@@ -147,6 +159,7 @@ interface ReferendaData {
   createdAt: Date;
   updatedAt: Date;
   edited: boolean;
+  polkassemblyId: number;
   onchainData?: {
     _id: string;
     referendumIndex: number;
