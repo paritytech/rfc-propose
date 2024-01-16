@@ -1,8 +1,8 @@
-import { getOctokit } from "@actions/github";
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import fetch from "node-fetch";
 
 import { extractRfcResult } from "./parse-RFC";
+import { OctokitInstance } from "./types";
 
 const getReferendaData = async (track: number): Promise<ReferendaData> => {
   const url = `https://collectives.subsquare.io/api/fellowship/referenda/${track}.json`;
@@ -22,24 +22,39 @@ const hexToString = (hex: string) => {
   return str;
 };
 
-export const getAllPRs = async (): Promise<void> => {
-  const octokit = getOctokit("API-KEY");
-  const prs = await octokit.paginate(octokit.rest.pulls.list, { owner: "polkadot-fellows", repo: "RFCs" });
+/** Gets the date of a block */
+const getBlockDate = async (blockNr: number, api: ApiPromise): Promise<Date> => {
+  const hash = await api.rpc.chain.getBlockHash(blockNr);
+  const timestamp = await api.query.timestamp.now.at(hash);
+  return new Date(timestamp.toPrimitive() as string);
+};
+
+export const getAllPRs = async (
+  octokit: OctokitInstance,
+  repo: { owner: string; repo: string },
+): Promise<[number, string][]> => {
+  const prs = await octokit.paginate(octokit.rest.pulls.list, repo);
+
   console.log("PRs", prs.length);
+
+  const prRemarks: [number, string][] = [];
 
   for (const pr of prs) {
     const { owner, name } = pr.base.repo;
     console.log("Extracting from PR: #%s in %s/%s", pr.number, owner.login, name);
-    const rfcResult = await extractRfcResult(octokit, { owner: "polkadot-fellows", repo: "RFCs", number: pr.number });
+    const rfcResult = await extractRfcResult(octokit, { ...repo, number: pr.number });
     if (rfcResult.result) {
-      console.log("RFC Result for #%s is", pr.number, rfcResult.result?.approveRemarkText);
+      console.log("RFC Result for #%s is", pr.number, rfcResult.result.approveRemarkText);
+      prRemarks.push([pr.number, rfcResult.result?.approveRemarkText]);
     } else {
       console.log("Had an error while creating RFC for #%s", pr.number, rfcResult.error);
     }
   }
+
+  return prRemarks;
 };
 
-export const getAllRFCRemarks = async (): Promise<string[]> => {
+export const getAllRFCRemarks = async (startDate: Date): Promise<string[]> => {
   const wsProvider = new WsProvider("wss://polkadot-collectives-rpc.polkadot.io");
   try {
     const api = await ApiPromise.create({ provider: wsProvider });
@@ -48,7 +63,7 @@ export const getAllRFCRemarks = async (): Promise<string[]> => {
     console.log("referendumCount", query);
 
     if (typeof query !== "number") {
-      throw new Error(`Query result is not a number: ${query}`);
+      throw new Error(`Query result is not a number: ${typeof query}`);
     }
     const ongoing: OnGoing[] = [];
     const remarks: string[] = [];
@@ -58,13 +73,22 @@ export const getAllRFCRemarks = async (): Promise<string[]> => {
       const refQuery = (await api.query.fellowshipReferenda.referendumInfoFor(index)).toJSON() as { ongoing?: OnGoing };
       console.log("Reference query", refQuery);
       if (refQuery.ongoing) {
+        const blockNr = refQuery.ongoing.submitted;
+        const blockDate = await getBlockDate(blockNr, api);
+
+        console.warn("date", blockDate);
+        if (startDate > blockDate) {
+          console.log("Referenda is older than previous check. Ignoring.");
+        }
+
         ongoing.push(refQuery.ongoing);
+
         const referendaData = await getReferendaData(refQuery.ongoing.track);
         if (
           referendaData.onchainData?.inlineCall?.call?.args &&
           referendaData.onchainData?.inlineCall?.call?.args[0].name == "remark"
         ) {
-          const [call] = referendaData.onchainData?.inlineCall?.call?.args;
+          const [call] = referendaData.onchainData.inlineCall.call.args;
           const remark = hexToString(call.value);
           remarks.push(remark);
         }
@@ -82,13 +106,15 @@ export const getAllRFCRemarks = async (): Promise<string[]> => {
   }
 };
 
-export const cron = async () => {
-  const remarks = await getAllRFCRemarks();
+export const cron = async (startDate: Date, owner: string, repo: string, octokit: OctokitInstance) => {
+  const remarks = await getAllRFCRemarks(startDate);
   if (remarks.length === 0) {
     console.warn("No ongoing RFCs made from pull requesting. Shuting down");
     return;
-  } else {
   }
+  console.log("Found remarks", remarks);
+  const prRemarks = await getAllPRs(octokit, { owner, repo });
+  console.log("Found all PR remarks", prRemarks);
 };
 
 interface OnGoing {
