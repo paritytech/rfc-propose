@@ -74,3 +74,27 @@ The built-in `secrets.GITHUB_TOKEN` can be used, as long as it has the necessary
 The `PROVIDER_URL` variable can be specified to override the default public endpoint to the Collectives parachain.
 
 A full archive node is needed to process the confirmed referenda.
+
+## Cron Job
+
+```yml
+on:
+  schedule:
+    - cron: '30 5 * * 1,3'
+    - cron: '30 5 * * 2,4'
+
+jobs:
+  test_schedule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get last run
+        run: echo "last=$(gh run list -w "$WORKFLOW" --json startedAt -q '.[0].startedAt')" >> "$GITHUB_OUTPUT"
+        id: date
+        env: 
+          WORKFLOW: ${{ github.workflow }}
+      - uses: paritytech/rfc-action@main
+        with:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROVIDER_URL: "wss://polkadot-collectives-rpc.polkadot.io" # Optional.
+          start-date: ${{ steps.date.outputs.last }}
+```
