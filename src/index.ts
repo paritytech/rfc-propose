@@ -5,22 +5,28 @@ import type { IssueCommentCreatedEvent } from "@octokit/webhooks-types";
 
 import { handleCommand } from "./handle-command";
 import { GithubReactionType } from "./types";
+import { cron } from "./rfc-cron";
 
 export async function run(): Promise<void> {
+  const { context } = githubActions;
   try {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    const [_, command, ...args] = githubActions.context.payload.comment?.body.split(" ") as (string | undefined)[];
+    const [_, command, ...args] = context.payload.comment?.body.split(" ") as (string | undefined)[];
     const respondParams = {
-      owner: githubActions.context.repo.owner,
-      repo: githubActions.context.repo.repo,
-      issue_number: githubActions.context.issue.number,
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      issue_number: context.issue.number,
     };
 
     const octokitInstance = githubActions.getOctokit(envVar("GH_TOKEN"));
-    if (githubActions.context.eventName !== "issue_comment") {
+    if (context.eventName === "schedule") {
+      const { owner, repo } = context.repo;
+      const startDate = core.getInput("start-date") ?? "0";
+      await cron(new Date(startDate), owner, repo, octokitInstance);
+    } else if (context.eventName !== "issue_comment") {
       throw new Error("The action is expected to be run on 'issue_comment' events only.");
     }
-    const event: IssueCommentCreatedEvent = githubActions.context.payload as IssueCommentCreatedEvent;
+    const event: IssueCommentCreatedEvent = context.payload as IssueCommentCreatedEvent;
     const requester = event.comment.user.login;
 
     const githubComment = async (body: string) =>
@@ -46,7 +52,7 @@ export async function run(): Promise<void> {
         await githubEmojiReaction("confused");
       }
     } catch (e) {
-      const logs = `${githubActions.context.serverUrl}/${githubActions.context.repo.owner}/${githubActions.context.repo.repo}/actions/runs/${githubActions.context.runId}`;
+      const logs = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
       await githubComment(
         `@${requester} Handling the RFC command failed :(\nYou can open an issue [here](https://github.com/paritytech/rfc-propose/issues/new).\nSee the logs [here](${logs}).`,
       );
