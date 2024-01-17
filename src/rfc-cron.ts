@@ -52,7 +52,7 @@ export const getAllPRs = async (
     const { owner, name } = pr.base.repo;
     logger.info(`Extracting from PR: #${pr.number} in ${owner.login}/${name}`);
     const rfcResult = await extractRfcResult(octokit, { ...repo, number: pr.number });
-    if (rfcResult.result) {
+    if (rfcResult.success) {
       logger.info(`RFC Result for #${pr.number} is ${rfcResult.result.approveRemarkText}`);
       prRemarks.push([pr.number, rfcResult.result?.approveRemarkText]);
     } else {

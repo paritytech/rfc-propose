@@ -13,7 +13,7 @@ export type ParseRFCResult = {
 export const extractRfcResult = async (
   octokit: OctokitInstance,
   pr: { owner: string; repo: string; number: number },
-): Promise<{ result?: ParseRFCResult; error?: string }> => {
+): Promise<{ success: true; result: ParseRFCResult } | { success: false; error: string }> => {
   const { owner, repo, number } = pr;
   const addedMarkdownFiles = (
     await octokit.rest.pulls.listFiles({
@@ -26,10 +26,11 @@ export const extractRfcResult = async (
   );
 
   if (addedMarkdownFiles.length < 1) {
-    return { error: "RFC markdown file was not found in the PR." };
+    return { success: false, error: "RFC markdown file was not found in the PR." };
   }
   if (addedMarkdownFiles.length > 1) {
     return {
+      success: false,
       error: `The system can only parse **one** markdown file but more than one were found: ${addedMarkdownFiles
         .map((file) => file.filename)
         .join(",")}. Please, reduce the number of files to **one file** for the system to work.`,
@@ -41,12 +42,14 @@ export const extractRfcResult = async (
   const rfcNumber: string | undefined = rfcFile.filename.split("text/")[1].split("-")[0];
   if (rfcNumber === undefined) {
     return {
+      success: false,
       error:
         "Failed to read the RFC number from the filename. Please follow the format: `NNNN-name.md`. Example: `0001-example-proposal.md`",
     };
   }
 
   return {
+    success: true,
     result: {
       approveRemarkText: getApproveRemarkText(rfcNumber, rawText),
       rejectRemarkText: getRejectRemarkText(rfcNumber, rawText),
@@ -65,19 +68,15 @@ export const extractRfcResult = async (
 export const parseRFC = async (requestState: RequestState): Promise<RequestResultFailed | ParseRFCResult> => {
   const { octokitInstance, event } = requestState;
 
-  const { result, error } = await extractRfcResult(octokitInstance, {
+  const result = await extractRfcResult(octokitInstance, {
     repo: event.repository.name,
     owner: event.repository.owner.login,
     number: event.issue.number,
   });
-  if (error) {
-    return userProcessError(requestState, error);
-  } else if (result) {
-    return result;
+  if (!result.success) {
+    return userProcessError(requestState, result.error);
   }
-
-  // TODO: Fix this logic and use an union type
-  throw new Error("Should not arrive here");
+  return result.result;
 };
 
 export const getApproveRemarkText = (rfcNumber: string, rawProposalText: string): string =>
