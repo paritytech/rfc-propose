@@ -127,6 +127,8 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
       await octokit.rest.issues.createComment({ owner, repo, issue_number: pr, body: msg });
     }
   }
+
+  // TODO: Add summary
 };
 
 interface OnGoing {

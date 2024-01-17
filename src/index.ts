@@ -10,14 +10,6 @@ import { GithubReactionType } from "./types";
 export async function run(): Promise<void> {
   const { context } = githubActions;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    const [_, command, ...args] = context.payload.comment?.body.split(" ") as (string | undefined)[];
-    const respondParams = {
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      issue_number: context.issue.number,
-    };
-
     const octokitInstance = githubActions.getOctokit(envVar("GH_TOKEN"));
     if (context.eventName === "schedule" || context.eventName === "workflow_dispatch") {
       const { owner, repo } = context.repo;
@@ -26,6 +18,15 @@ export async function run(): Promise<void> {
     } else if (context.eventName !== "issue_comment") {
       throw new Error("The action is expected to be run on 'issue_comment' events only.");
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    const [_, command, ...args] = context.payload.comment?.body.split(" ") as (string | undefined)[];
+    const respondParams = {
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      issue_number: context.issue.number,
+    };
+
     const event: IssueCommentCreatedEvent = context.payload as IssueCommentCreatedEvent;
     const requester = event.comment.user.login;
 
