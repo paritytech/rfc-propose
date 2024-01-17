@@ -75,13 +75,17 @@ The `PROVIDER_URL` variable can be specified to override the default public endp
 
 A full archive node is needed to process the confirmed referenda.
 
-## Cron Job
+## Notification job
+
+You can set the GitHub action to also run notifying on a PR when a referenda is available for voting.
+
+It will look for new referendas available since the last time the action was run, so it won't generate duplicated messages.
 
 ```yml
 on:
+  workflow_dispatch:
   schedule:
-    - cron: '30 5 * * 1,3'
-    - cron: '30 5 * * 2,4'
+    - cron: '0 12 * * *'
 
 jobs:
   test_schedule:

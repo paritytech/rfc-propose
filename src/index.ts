@@ -19,7 +19,7 @@ export async function run(): Promise<void> {
     };
 
     const octokitInstance = githubActions.getOctokit(envVar("GH_TOKEN"));
-    if (context.eventName === "schedule") {
+    if (context.eventName === "schedule" || context.eventName === "workflow_dispatch") {
       const { owner, repo } = context.repo;
       const startDate = core.getInput("start-date") ?? "0";
       await cron(new Date(startDate), owner, repo, octokitInstance);
