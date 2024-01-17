@@ -88,14 +88,16 @@ on:
     - cron: '0 12 * * *'
 
 jobs:
-  test_schedule:
+  notify_referendas:
     runs-on: ubuntu-latest
     steps:
       - name: Get last run
         run: echo "last=$(gh run list -w "$WORKFLOW" --json startedAt -q '.[0].startedAt')" >> "$GITHUB_OUTPUT"
         id: date
         env: 
+          GH_TOKEN: ${{ github.token }}
           WORKFLOW: ${{ github.workflow }}
+          GH_REPO: "${{ github.repository_owner }}/${{ github.event.repository.name }}"
       - uses: paritytech/rfc-action@main
         with:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
