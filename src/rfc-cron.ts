@@ -1,3 +1,4 @@
+import { summary, SummaryTableRow } from "@actions/core/lib/summary";
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import fetch from "node-fetch";
 
@@ -119,16 +120,27 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
   const prRemarks = await getAllPRs(octokit, { owner, repo });
   console.log("Found all PR remarks", prRemarks);
 
+  const rows: SummaryTableRow[] = [
+    [
+      { data: "PR", header: true },
+      { data: "Referenda", header: true },
+    ],
+  ];
   for (const [pr, remark] of prRemarks) {
     const match = remarks.find((r) => r.remark === remark);
     if (match) {
       console.log("Found existing referenda for PR #%s", pr);
       const msg = `Voting for this referenda is **ongoing**.\n\nVote for it [here]${match.url}`;
+      rows.push([`${owner}/${repo}#${pr}`, `<a href="${match.url}">${match.url}</a>`]);
       await octokit.rest.issues.createComment({ owner, repo, issue_number: pr, body: msg });
     }
   }
 
-  // TODO: Add summary
+  await summary
+    .addHeading("Referenda search", 3)
+    .addHeading(`Found ${rows.length - 1} ongoing referendas`, 5)
+    .addTable(rows)
+    .write();
 };
 
 interface OnGoing {
