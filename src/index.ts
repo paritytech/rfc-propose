@@ -14,7 +14,7 @@ export async function run(): Promise<void> {
     if (context.eventName === "schedule" || context.eventName === "workflow_dispatch") {
       const { owner, repo } = context.repo;
       const startDate = core.getInput("start-date") ?? "0";
-      await cron(new Date(startDate), owner, repo, octokitInstance);
+      return await cron(new Date(startDate), owner, repo, octokitInstance);
     } else if (context.eventName !== "issue_comment") {
       throw new Error("The action is expected to be run on 'issue_comment' events only.");
     }
