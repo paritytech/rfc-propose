@@ -1,16 +1,23 @@
+import { debug, error, info, warning } from "@actions/core";
 import { summary, SummaryTableRow } from "@actions/core/lib/summary";
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import fetch from "node-fetch";
 
-import { extractRfcResult } from "./parse-RFC";
-import { OctokitInstance } from "./types";
 import { PROVIDER_URL } from "./constants";
+import { extractRfcResult } from "./parse-RFC";
+import { ActionLogger, OctokitInstance } from "./types";
 
+const logger: ActionLogger = {
+  info,
+  debug,
+  warn: warning,
+  error,
+};
 const getReferendaData = async (track: number): Promise<ReferendaData> => {
   const url = `https://collectives.subsquare.io/api/fellowship/referenda/${track}.json`;
   const call = await fetch(url);
   const data = (await call.json()) as ReferendaData;
-  console.log("Parsed data is", data);
+  logger.debug(`Parsed data is ${JSON.stringify(data)}`);
   return data;
 };
 
@@ -37,19 +44,19 @@ export const getAllPRs = async (
 ): Promise<[number, string][]> => {
   const prs = await octokit.paginate(octokit.rest.pulls.list, repo);
 
-  console.log("PRs", prs.length);
+  logger.info(`Found ${prs.length} open PRs`);
 
   const prRemarks: [number, string][] = [];
 
   for (const pr of prs) {
     const { owner, name } = pr.base.repo;
-    console.log("Extracting from PR: #%s in %s/%s", pr.number, owner.login, name);
+    logger.info(`Extracting from PR: #${pr.number} in ${owner.login}/${name}`);
     const rfcResult = await extractRfcResult(octokit, { ...repo, number: pr.number });
     if (rfcResult.result) {
-      console.log("RFC Result for #%s is", pr.number, rfcResult.result.approveRemarkText);
+      logger.info(`RFC Result for #${pr.number} is ${rfcResult.result.approveRemarkText}`);
       prRemarks.push([pr.number, rfcResult.result?.approveRemarkText]);
     } else {
-      console.log("Had an error while creating RFC for #%s", pr.number, rfcResult.error);
+      logger.warn(`Had an error while creating RFC for #${pr.number}: ${rfcResult.error}`);
     }
   }
 
@@ -60,30 +67,28 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; 
   const wsProvider = new WsProvider(PROVIDER_URL);
   try {
     const api = await ApiPromise.create({ provider: wsProvider });
-    // We fetch all the members
+    // We fetch all the available referendas
     const query = (await api.query.fellowshipReferenda.referendumCount()).toPrimitive();
-    console.log("referendumCount", query);
 
     if (typeof query !== "number") {
       throw new Error(`Query result is not a number: ${typeof query}`);
     }
-    const ongoing: OnGoing[] = [];
+
+    logger.info(`Available referendas: ${query}`);
     const remarks: { url: string; remark: string }[] = [];
     for (const index of Array.from(Array(query).keys())) {
-      console.log("Fetching element %s/%s", index + 1, query);
+      logger.info(`Fetching elements ${index + 1}/${query}`);
 
       const refQuery = (await api.query.fellowshipReferenda.referendumInfoFor(index)).toJSON() as { ongoing?: OnGoing };
-      console.log("Reference query", refQuery);
+
       if (refQuery.ongoing) {
+        logger.info(`Found ongoing request: ${JSON.stringify(refQuery)}`);
         const blockNr = refQuery.ongoing.submitted;
         const blockDate = await getBlockDate(blockNr, api);
 
-        console.warn("date", blockDate);
         if (startDate > blockDate) {
-          console.log("Referenda is older than previous check. Ignoring.");
+          logger.info("Referenda is older than previous check. Ignoring.");
         }
-
-        ongoing.push(refQuery.ongoing);
 
         const referendaData = await getReferendaData(refQuery.ongoing.track);
         if (
@@ -97,14 +102,16 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; 
             url: `https://collectives.polkassembly.io/referenda/${referendaData.polkassemblyId}`,
           });
         }
+      } else {
+        logger.debug(`Reference query is not ongoing: ${JSON.stringify(refQuery)}`);
       }
     }
 
-    console.log(`Found ${ongoing.length} ongoing requests`, ongoing);
+    logger.info(`Found ${remarks.length} ongoing requests`);
 
     return remarks;
   } catch (err) {
-    console.error("Error during exectuion");
+    logger.error("Error during exectuion");
     throw err;
   } finally {
     await wsProvider.disconnect();
@@ -114,12 +121,13 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; 
 export const cron = async (startDate: Date, owner: string, repo: string, octokit: OctokitInstance): Promise<void> => {
   const remarks = await getAllRFCRemarks(startDate);
   if (remarks.length === 0) {
-    console.warn("No ongoing RFCs made from pull requesting. Shuting down");
+    logger.warn("No ongoing RFCs made from pull requesting. Shuting down");
+    await summary.addHeading("Referenda search", 3).addHeading("Found no matching referenda to open PRs").write();
     return;
   }
-  console.log("Found remarks", remarks);
+  logger.debug(`Found remarks ${JSON.stringify(remarks)}`);
   const prRemarks = await getAllPRs(octokit, { owner, repo });
-  console.log("Found all PR remarks", prRemarks);
+  logger.debug(`Found all PR remarks ${JSON.stringify(prRemarks)}`);
 
   const rows: SummaryTableRow[] = [
     [
@@ -130,7 +138,7 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
   for (const [pr, remark] of prRemarks) {
     const match = remarks.find((r) => r.remark === remark);
     if (match) {
-      console.log("Found existing referenda for PR #%s", pr);
+      logger.info(`Found existing referenda for PR #${pr}`);
       const msg = `Voting for this referenda is **ongoing**.\n\nVote for it [here]${match.url}`;
       rows.push([`${owner}/${repo}#${pr}`, `<a href="${match.url}">${match.url}</a>`]);
       await octokit.rest.issues.createComment({ owner, repo, issue_number: pr, body: msg });
@@ -147,7 +155,7 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
 interface OnGoing {
   track: number;
   origin: { fellowshipOrigins: string };
-  proposal: { lookup: unknown };
+  proposal: { lookup?: { hash: string }; inline?: string };
   enactment: { after: number };
   submitted: number;
   submissionDeposit: {
