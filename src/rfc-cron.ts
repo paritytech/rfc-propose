@@ -4,6 +4,7 @@ import fetch from "node-fetch";
 
 import { extractRfcResult } from "./parse-RFC";
 import { OctokitInstance } from "./types";
+import { PROVIDER_URL } from "./constants";
 
 const getReferendaData = async (track: number): Promise<ReferendaData> => {
   const url = `https://collectives.subsquare.io/api/fellowship/referenda/${track}.json`;
@@ -56,7 +57,7 @@ export const getAllPRs = async (
 };
 
 export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; remark: string }[]> => {
-  const wsProvider = new WsProvider("wss://polkadot-collectives-rpc.polkadot.io");
+  const wsProvider = new WsProvider(PROVIDER_URL);
   try {
     const api = await ApiPromise.create({ provider: wsProvider });
     // We fetch all the members

@@ -102,5 +102,5 @@ jobs:
         with:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROVIDER_URL: "wss://polkadot-collectives-rpc.polkadot.io" # Optional.
-          start-date: ${{ steps.date.outputs.last }}
+          START_DATE: ${{ steps.date.outputs.last }}
 ```

@@ -3,6 +3,7 @@ import * as githubActions from "@actions/github";
 import { envVar } from "@eng-automation/js";
 import type { IssueCommentCreatedEvent } from "@octokit/webhooks-types";
 
+import { START_DATE } from "./constants";
 import { handleCommand } from "./handle-command";
 import { cron } from "./rfc-cron";
 import { GithubReactionType } from "./types";
@@ -13,8 +14,7 @@ export async function run(): Promise<void> {
     const octokitInstance = githubActions.getOctokit(envVar("GH_TOKEN"));
     if (context.eventName === "schedule" || context.eventName === "workflow_dispatch") {
       const { owner, repo } = context.repo;
-      const startDate = core.getInput("start-date") ?? "0";
-      return await cron(new Date(startDate), owner, repo, octokitInstance);
+      return await cron(new Date(START_DATE), owner, repo, octokitInstance);
     } else if (context.eventName !== "issue_comment") {
       throw new Error("The action is expected to be run on 'issue_comment' events only.");
     }
