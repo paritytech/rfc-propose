@@ -4,8 +4,8 @@ import { envVar } from "@eng-automation/js";
 import type { IssueCommentCreatedEvent } from "@octokit/webhooks-types";
 
 import { handleCommand } from "./handle-command";
-import { GithubReactionType } from "./types";
 import { cron } from "./rfc-cron";
+import { GithubReactionType } from "./types";
 
 export async function run(): Promise<void> {
   const { context } = githubActions;

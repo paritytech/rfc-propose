@@ -132,7 +132,7 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
 interface OnGoing {
   track: number;
   origin: { fellowshipOrigins: string };
-  proposal: { lookup: any };
+  proposal: { lookup: unknown };
   enactment: { after: number };
   submitted: number;
   submissionDeposit: {

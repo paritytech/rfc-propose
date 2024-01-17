@@ -52,7 +52,7 @@ export const extractRfcResult = async (
       rejectRemarkText: getRejectRemarkText(rfcNumber, rawText),
       rfcFileRawUrl: rfcFile.raw_url,
       rfcNumber,
-    }
+    },
   };
 };
 
