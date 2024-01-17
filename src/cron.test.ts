@@ -1,4 +1,4 @@
-import { getAllRFCRemarks } from "./rfc-cron";
+import { getAllRFCRemarks } from "./cron";
 
 describe("RFC Listing test", () => {
   test("Should not return any remark with future date", async () => {

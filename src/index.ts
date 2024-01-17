@@ -5,7 +5,7 @@ import type { IssueCommentCreatedEvent } from "@octokit/webhooks-types";
 
 import { START_DATE } from "./constants";
 import { handleCommand } from "./handle-command";
-import { cron } from "./rfc-cron";
+import { cron } from "./cron";
 import { GithubReactionType } from "./types";
 
 export async function run(): Promise<void> {
