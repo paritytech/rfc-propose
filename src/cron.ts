@@ -68,6 +68,9 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; 
         const blockNr = refQuery.ongoing.submitted;
         const blockDate = await getBlockDate(blockNr, api);
 
+        logger.debug(
+          `Checking if the startDate (${startDate.toString()}) is newer than the block date (${blockDate.toString()})`,
+        );
         // Skip referendas that have been interacted with last time
         if (startDate > blockDate) {
           logger.info(`Referenda #${index} is older than previous check. Ignoring.`);
