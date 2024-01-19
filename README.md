@@ -92,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get last run
-        run: echo "last=$(gh run list -w "$WORKFLOW" --json startedAt -q '.[0].startedAt')" >> "$GITHUB_OUTPUT"
+        run: echo "last=$(gh run list -w "$WORKFLOW" --json startedAt,status -q 'map(select(.status == "completed"))[0].startedAt' >> "$GITHUB_OUTPUT"
         id: date
         env: 
           GH_TOKEN: ${{ github.token }}
