@@ -107,7 +107,7 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
   const remarks = await getAllRFCRemarks(startDate);
   if (remarks.length === 0) {
     logger.warn("No ongoing RFCs made from pull requests. Shuting down");
-    await summary.addHeading("Referenda search", 3).addHeading("Found no matching referenda to open PRs").write();
+    await summary.addHeading("Referenda search", 3).addHeading("Found no matching referenda to open PRs", 5).write();
     return;
   }
   logger.debug(`Found remarks ${JSON.stringify(remarks)}`);
@@ -147,6 +147,8 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
     .addHeading(`Found ${rows.length - 1} PRs matching ongoing referendas`, 5)
     .addTable(rows)
     .write();
+
+  logger.info("Finished run");
 };
 
 interface OnGoing {
