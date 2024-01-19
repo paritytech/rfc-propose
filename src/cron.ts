@@ -1,7 +1,6 @@
 import { debug, error, info, warning } from "@actions/core";
 import { summary, SummaryTableRow } from "@actions/core/lib/summary";
 import { ApiPromise, WsProvider } from "@polkadot/api";
-import fetch from "node-fetch";
 
 import { PROVIDER_URL } from "./constants";
 import { extractRfcResult } from "./parse-RFC";
@@ -12,23 +11,6 @@ const logger: ActionLogger = {
   debug,
   warn: warning,
   error,
-};
-const getReferendaData = async (track: number): Promise<ReferendaData> => {
-  const url = `https://collectives.subsquare.io/api/fellowship/referenda/${track}.json`;
-  const call = await fetch(url);
-  const data = (await call.json()) as ReferendaData;
-  logger.debug(`Parsed data is ${JSON.stringify(data)}`);
-  return data;
-};
-
-const hexToString = (hex: string) => {
-  let str = "";
-  for (let i = 0; i < hex.length; i += 2) {
-    const hexValue = hex.substr(i, 2);
-    const decimalValue = parseInt(hexValue, 16);
-    str += String.fromCharCode(decimalValue);
-  }
-  return str;
 };
 
 /** Gets the date of a block */
@@ -63,7 +45,7 @@ export const getAllPRs = async (
   return prRemarks;
 };
 
-export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; remark: string }[]> => {
+export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; hash: string }[]> => {
   const wsProvider = new WsProvider(PROVIDER_URL);
   try {
     const api = await ApiPromise.create({ provider: wsProvider });
@@ -75,7 +57,7 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; 
     }
 
     logger.info(`Available referendas: ${query}`);
-    const remarks: { url: string; remark: string }[] = [];
+    const hashes: { url: string; hash: string }[] = [];
     for (const index of Array.from(Array(query).keys())) {
       logger.info(`Fetching elements ${index + 1}/${query}`);
 
@@ -86,30 +68,30 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; 
         const blockNr = refQuery.ongoing.submitted;
         const blockDate = await getBlockDate(blockNr, api);
 
+        // Skip referendas that have been interacted with last time
         if (startDate > blockDate) {
-          logger.info("Referenda is older than previous check. Ignoring.");
+          logger.info(`Referenda #${index} is older than previous check. Ignoring.`);
+          continue;
         }
 
-        const referendaData = await getReferendaData(refQuery.ongoing.track);
-        if (
-          referendaData.onchainData?.inlineCall?.call?.args &&
-          referendaData.onchainData?.inlineCall?.call?.args[0].name == "remark"
-        ) {
-          const [call] = referendaData.onchainData.inlineCall.call.args;
-          const remark = hexToString(call.value);
-          remarks.push({
-            remark,
-            url: `https://collectives.polkassembly.io/referenda/${referendaData.polkassemblyId}`,
-          });
+        const { proposal } = refQuery.ongoing;
+        const hash = proposal?.lookup?.hash ?? proposal?.inline;
+        if (hash) {
+          hashes.push({ hash, url: `https://collectives.polkassembly.io/referenda/${index}` });
+        } else {
+          logger.warn(
+            `Found no lookup hash nor inline hash for https://collectives.polkassembly.io/referenda/${index}`,
+          );
+          continue;
         }
       } else {
         logger.debug(`Reference query is not ongoing: ${JSON.stringify(refQuery)}`);
       }
     }
 
-    logger.info(`Found ${remarks.length} ongoing requests`);
+    logger.info(`Found ${hashes.length} ongoing requests`);
 
-    return remarks;
+    return hashes;
   } catch (err) {
     logger.error("Error during exectuion");
     throw err;
@@ -135,14 +117,25 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
       { data: "Referenda", header: true },
     ],
   ];
-  for (const [pr, remark] of prRemarks) {
-    const match = remarks.find((r) => r.remark === remark);
-    if (match) {
-      logger.info(`Found existing referenda for PR #${pr}`);
-      const msg = `Voting for this referenda is **ongoing**.\n\nVote for it [here]${match.url}`;
-      rows.push([`${owner}/${repo}#${pr}`, `<a href="${match.url}">${match.url}</a>`]);
-      await octokit.rest.issues.createComment({ owner, repo, issue_number: pr, body: msg });
+
+  const wsProvider = new WsProvider(PROVIDER_URL);
+  try {
+    const api = await ApiPromise.create({ provider: wsProvider });
+    for (const [pr, remark] of prRemarks) {
+      // We compare the hash to see if there is a match
+      const tx = api.tx.system.remark(remark);
+      const match = remarks.find(({ hash }) => hash === tx.method.hash.toHex() || hash === tx.method.toHex());
+      if (match) {
+        logger.info(`Found existing referenda for PR #${pr}`);
+        const msg = `Voting for this referenda is **ongoing**.\n\nVote for it [here]${match.url}`;
+        rows.push([`${owner}/${repo}#${pr}`, `<a href="${match.url}">${match.url}</a>`]);
+        console.log("Commenting", { owner, repo, issue_number: pr, body: msg });
+        // await octokit.rest.issues.createComment({ owner, repo, issue_number: pr, body: msg });
+      }
     }
+  } catch (e) {
+    await wsProvider.disconnect();
+    logger.error(e as Error);
   }
 
   await summary
@@ -169,40 +162,4 @@ interface OnGoing {
   deciding: { since: number; confirming: null };
   tally: Record<string, number>;
   inQueue: boolean;
-}
-
-interface ReferendaData {
-  _id: string;
-  referendumIndex: number;
-  proposer: string;
-  title: string;
-  content: string;
-  contentType: string | "markdown";
-  track: number;
-  createdAt: Date;
-  updatedAt: Date;
-  edited: boolean;
-  polkassemblyId: number;
-  onchainData?: {
-    _id: string;
-    referendumIndex: number;
-    track: number;
-    state: {
-      name: string;
-    };
-    inlineCall?: {
-      hex: string;
-      hash: string;
-      call?: {
-        callIndex: string;
-        section: string;
-        method: "remark" | string;
-        args: {
-          name: "remark" | string;
-          type: "Bytes" | string;
-          value: string;
-        }[];
-      };
-    };
-  };
 }
