@@ -103,7 +103,7 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; 
 export const cron = async (startDate: Date, owner: string, repo: string, octokit: OctokitInstance): Promise<void> => {
   const remarks = await getAllRFCRemarks(startDate);
   if (remarks.length === 0) {
-    logger.warn("No ongoing RFCs made from pull requesting. Shuting down");
+    logger.warn("No ongoing RFCs made from pull requests. Shuting down");
     await summary.addHeading("Referenda search", 3).addHeading("Found no matching referenda to open PRs").write();
     return;
   }
@@ -129,8 +129,7 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
         logger.info(`Found existing referenda for PR #${pr}`);
         const msg = `Voting for this referenda is **ongoing**.\n\nVote for it [here]${match.url}`;
         rows.push([`${owner}/${repo}#${pr}`, `<a href="${match.url}">${match.url}</a>`]);
-        console.log("Commenting", { owner, repo, issue_number: pr, body: msg });
-        // await octokit.rest.issues.createComment({ owner, repo, issue_number: pr, body: msg });
+        await octokit.rest.issues.createComment({ owner, repo, issue_number: pr, body: msg });
       }
     }
   } catch (e) {
