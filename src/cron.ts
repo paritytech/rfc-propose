@@ -141,7 +141,7 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
 
   await summary
     .addHeading("Referenda search", 3)
-    .addHeading(`Found ${rows.length - 1} ongoing referendas`, 5)
+    .addHeading(`Found ${rows.length - 1} PRs matching ongoing referendas`, 5)
     .addTable(rows)
     .write();
 };
