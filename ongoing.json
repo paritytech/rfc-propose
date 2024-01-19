@@ -1,0 +1,44 @@
+{
+    "ongoing": {
+        "track": 22,
+        "origin": {
+            "fellowshipOrigins": "PromoteTo2Dan"
+        },
+        "proposal": {
+            "lookup": {
+                "hash": "0x4a2b03b99818eab08ec1014a610c1a5f633bfbf5bf05af352003b39010326e8b",
+                "len": 36
+            }
+        },
+        "enactment": {
+            "after": 100
+        },
+        "submitted": 2973776,
+        "submissionDeposit": {
+            "who": "14YDyDZ9o1Nr2hMqLSbjYpr4Wm5s1gux6CvjYZfUTJ4Np3w1",
+            "amount": 0
+        },
+        "decisionDeposit": {
+            "who": "14YDyDZ9o1Nr2hMqLSbjYpr4Wm5s1gux6CvjYZfUTJ4Np3w1",
+            "amount": 50000000000
+        },
+        "deciding": {
+            "since": 2973778,
+            "confirming": null
+        },
+        "tally": {
+            "bareAyes": 2,
+            "ayes": 9,
+            "nays": 0
+        },
+        "inQueue": false,
+        "alarm": [
+            3170142,
+            [
+                3170142,
+                0
+            ]
+        ]
+    }
+}
+
