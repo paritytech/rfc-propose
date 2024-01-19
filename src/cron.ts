@@ -133,8 +133,10 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
       }
     }
   } catch (e) {
-    await wsProvider.disconnect();
     logger.error(e as Error);
+    throw new Error("There was a problem during the commenting");
+  } finally {
+    await wsProvider.disconnect();
   }
 
   await summary
