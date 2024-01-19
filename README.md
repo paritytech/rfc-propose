@@ -99,7 +99,7 @@ jobs:
           WORKFLOW: ${{ github.workflow }}
           GH_REPO: "${{ github.repository_owner }}/${{ github.event.repository.name }}"
       - uses: paritytech/rfc-action@main
-        with:
+        env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROVIDER_URL: "wss://polkadot-collectives-rpc.polkadot.io" # Optional.
           START_DATE: ${{ steps.date.outputs.last }}
