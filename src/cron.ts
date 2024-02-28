@@ -104,9 +104,13 @@ export const getAllRFCRemarks = async (
         if (refQuery.approved) {
           logger.debug(`Fetching info from referenda ${index} from Subsquare`);
           const rfc = await subsquareApi.fetchReferenda(index);
-          const lastTimeline = rfc.onchainData.timeline.at(-1);
-          if (lastTimeline?.name === "Confirmed" || lastTimeline?.name === "Executed") {
-            completed.push({ hash: rfc.onchainData.proposalHash, executedHash: lastTimeline.indexer.blockHash, index });
+          const confirmedBlock = rfc.onchainData.timeline.find(({ name }) => name === "Confirmed");
+          if (confirmedBlock) {
+            completed.push({
+              hash: rfc.onchainData.proposalHash,
+              executedHash: confirmedBlock.indexer.blockHash,
+              index,
+            });
           }
         }
       }
