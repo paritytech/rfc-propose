@@ -1,7 +1,6 @@
 import { debug, error, info, warning } from "@actions/core";
 import { summary, SummaryTableRow } from "@actions/core/lib/summary";
 import { ApiPromise, WsProvider } from "@polkadot/api";
-import { writeFile } from "fs/promises";
 
 import { PROVIDER_URL } from "./constants";
 import { extractRfcResult } from "./parse-RFC";
