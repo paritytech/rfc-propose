@@ -1,12 +1,12 @@
 import { debug, error, info, warning } from "@actions/core";
 import { summary, SummaryTableRow } from "@actions/core/lib/summary";
 import { ApiPromise, WsProvider } from "@polkadot/api";
+import { writeFile } from "fs/promises";
 
 import { PROVIDER_URL } from "./constants";
 import { extractRfcResult } from "./parse-RFC";
-import { ActionLogger, OctokitInstance } from "./types";
 import { SubsquareApi } from "./subsquare";
-import { writeFile } from "fs/promises";
+import { ActionLogger, OctokitInstance } from "./types";
 
 const logger: ActionLogger = {
   info,
@@ -47,7 +47,12 @@ export const getAllPRs = async (
   return prRemarks;
 };
 
-export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; hash: string }[]> => {
+type OpenReferenda = { url: string; hash: string };
+type CompletedReferenda = { hash: string; executedHash: string; index: number };
+
+export const getAllRFCRemarks = async (
+  startDate: Date,
+): Promise<{ ongoing: OpenReferenda[]; completed: CompletedReferenda[] }> => {
   const wsProvider = new WsProvider(PROVIDER_URL);
   try {
     const api = await ApiPromise.create({ provider: wsProvider });
@@ -59,11 +64,17 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; 
     }
 
     logger.info(`Available referendas: ${query}`);
-    const hashes: { url: string; hash: string }[] = [];
+    const ongoing: OpenReferenda[] = [];
+    const completed: CompletedReferenda[] = [];
+
+    const subsquareApi = new SubsquareApi();
     for (const index of Array.from(Array(query).keys())) {
       logger.info(`Fetching elements ${index + 1}/${query}`);
 
-      const refQuery = (await api.query.fellowshipReferenda.referendumInfoFor(index)).toJSON() as { ongoing?: OnGoing };
+      const refQuery = (await api.query.fellowshipReferenda.referendumInfoFor(index)).toJSON() as {
+        ongoing?: OnGoing;
+        approved?: (number | null)[];
+      };
 
       if (refQuery.ongoing) {
         logger.info(`Found ongoing request: ${JSON.stringify(refQuery)}`);
@@ -82,7 +93,7 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; 
         const { proposal } = refQuery.ongoing;
         const hash = proposal?.lookup?.hash ?? proposal?.inline;
         if (hash) {
-          hashes.push({ hash, url: `https://collectives.polkassembly.io/referenda/${index}` });
+          ongoing.push({ hash, url: `https://collectives.polkassembly.io/referenda/${index}` });
         } else {
           logger.warn(
             `Found no lookup hash nor inline hash for https://collectives.polkassembly.io/referenda/${index}`,
@@ -91,15 +102,20 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; 
         }
       } else {
         logger.debug(`Reference query is not ongoing: ${JSON.stringify(refQuery)}`);
-        const rfc = await subsquareApi.fetchReferenda(index);
-        console.log(rfc);
-        await writeFile(`./rfc/${index}.json`, JSON.stringify(rfc));
+        if (refQuery.approved) {
+          logger.debug(`Fetching info from referenda ${index} from Subsquare`);
+          const rfc = await subsquareApi.fetchReferenda(index);
+          const lastTimeline = rfc.onchainData.timeline.at(-1);
+          if (lastTimeline?.name === "Confirmed" || lastTimeline?.name === "Executed") {
+            completed.push({ hash: rfc.onchainData.proposalHash, executedHash: lastTimeline.indexer.blockHash, index });
+          }
+        }
       }
     }
 
-    logger.info(`Found ${hashes.length} ongoing requests`);
+    logger.info(`Found ${ongoing.length} ongoing and ${completed.length} completed requests`);
 
-    return hashes;
+    return { completed, ongoing };
   } catch (err) {
     logger.error("Error during exectuion");
     throw err;
@@ -109,13 +125,13 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; 
 };
 
 export const cron = async (startDate: Date, owner: string, repo: string, octokit: OctokitInstance): Promise<void> => {
-  const remarks = await getAllRFCRemarks(startDate);
-  if (remarks.length === 0) {
-    logger.warn("No ongoing RFCs made from pull requests. Shuting down");
+  const { ongoing, completed } = await getAllRFCRemarks(startDate);
+  if (ongoing.length === 0 && completed.length === 0) {
+    logger.warn("No RFCs made from pull requests found. Shuting down");
     await summary.addHeading("Referenda search", 3).addHeading("Found no matching referenda to open PRs", 5).write();
     return;
   }
-  logger.debug(`Found remarks ${JSON.stringify(remarks)}`);
+  logger.debug(`Found remarks ${JSON.stringify(ongoing)}`);
   const prRemarks = await getAllPRs(octokit, { owner, repo });
   logger.debug(`Found all PR remarks ${JSON.stringify(prRemarks)}`);
 
@@ -132,11 +148,24 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
     for (const [pr, remark] of prRemarks) {
       // We compare the hash to see if there is a match
       const tx = api.tx.system.remark(remark);
-      const match = remarks.find(({ hash }) => hash === tx.method.hash.toHex() || hash === tx.method.toHex());
+
+      // We first start with ongoing referendas
+      const match = ongoing.find(({ hash }) => hash === tx.method.hash.toHex() || hash === tx.method.toHex());
       if (match) {
         logger.info(`Found existing referenda for PR #${pr}`);
         const msg = `Voting for this referenda is **ongoing**.\n\nVote for it [here](${match.url})`;
         rows.push([`${owner}/${repo}#${pr}`, `<a href="${match.url}">${match.url}</a>`]);
+      }
+
+      // if we don't find a match, we search for a closed referenda
+      const closedMatch = completed.find(({ hash }) => hash === tx.method.hash.toHex() || hash === tx.method.toHex());
+      if (closedMatch) {
+        logger.info(`Found completed referenda for PR #${pr}`);
+        const msg = `/rfc process ${closedMatch.executedHash}`;
+        rows.push([
+          `${owner}/${repo}#${pr}`,
+          `<a href="https://collectives.polkassembly.io/referenda/${closedMatch.index}>RFC ${closedMatch.index}</a>`,
+        ]);
         await octokit.rest.issues.createComment({ owner, repo, issue_number: pr, body: msg });
       }
     }
