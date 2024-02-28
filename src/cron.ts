@@ -154,6 +154,7 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
         logger.info(`Found existing referenda for PR #${pr}`);
         const msg = `Voting for this referenda is **ongoing**.\n\nVote for it [here](${match.url})`;
         rows.push([`${owner}/${repo}#${pr}`, `<a href="${match.url}">${match.url}</a>`]);
+        await octokit.rest.issues.createComment({ owner, repo, issue_number: pr, body: msg });
       }
 
       // if we don't find a match, we search for a closed referenda
