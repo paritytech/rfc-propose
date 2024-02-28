@@ -106,6 +106,11 @@ export const getAllRFCRemarks = async (
           const rfc = await subsquareApi.fetchReferenda(index);
           const confirmedBlock = rfc.onchainData.timeline.find(({ name }) => name === "Confirmed");
           if (confirmedBlock) {
+            const blockDate = await getBlockDate(confirmedBlock.indexer.blockTime, api);
+            if (startDate > blockDate) {
+              logger.info(`Confirmation of referenda #${index} happened before the previous check. Ignoring.`);
+              continue;
+            }
             completed.push({
               hash: rfc.onchainData.proposalHash,
               executedHash: confirmedBlock.indexer.blockHash,
