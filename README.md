@@ -77,9 +77,11 @@ A full archive node is needed to process the confirmed referenda.
 
 ## Notification job
 
-You can set the GitHub action to also run notifying on a PR when a referenda is available for voting.
+You can set the GitHub action to also run notifying on a PR when a referenda is available for voting or it has closed.
 
 It will look for new referendas available since the last time the action was run, so it won't generate duplicated messages.
+
+If it finds an open PR that matches a completed referenda it will initiate the process to close it.
 
 ```yml
 on:
