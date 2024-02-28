@@ -106,7 +106,7 @@ export const getAllRFCRemarks = async (
           const rfc = await subsquareApi.fetchReferenda(index);
           const confirmedBlock = rfc.onchainData.timeline.find(({ name }) => name === "Confirmed");
           if (confirmedBlock) {
-            const blockDate = await getBlockDate(confirmedBlock.indexer.blockTime, api);
+            const blockDate = await getBlockDate(confirmedBlock.indexer.blockHeight, api);
             if (startDate > blockDate) {
               logger.info(`Confirmation of referenda #${index} happened before the previous check. Ignoring.`);
               continue;
@@ -170,7 +170,8 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
       const closedMatch = completed.find(({ hash }) => hash === tx.method.hash.toHex() || hash === tx.method.toHex());
       if (closedMatch) {
         logger.info(`Found completed referenda for PR #${pr}`);
-        const msg = `/rfc process ${closedMatch.executedHash}`;
+        const command = `/rfc process ${closedMatch.executedHash}`;
+        const msg = "PR can be merged. Write the following command to trigger the bot" + `\n\n\`${command}\``;
         rows.push([
           `${owner}/${repo}#${pr}`,
           `<a href="https://collectives.polkassembly.io/referenda/${closedMatch.index}>RFC ${closedMatch.index}</a>`,
