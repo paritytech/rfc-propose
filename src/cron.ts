@@ -5,6 +5,8 @@ import { ApiPromise, WsProvider } from "@polkadot/api";
 import { PROVIDER_URL } from "./constants";
 import { extractRfcResult } from "./parse-RFC";
 import { ActionLogger, OctokitInstance } from "./types";
+import { SubsquareApi } from "./subsquare";
+import { writeFile } from "fs/promises";
 
 const logger: ActionLogger = {
   info,
@@ -89,6 +91,9 @@ export const getAllRFCRemarks = async (startDate: Date): Promise<{ url: string; 
         }
       } else {
         logger.debug(`Reference query is not ongoing: ${JSON.stringify(refQuery)}`);
+        const rfc = await subsquareApi.fetchReferenda(index);
+        console.log(rfc);
+        await writeFile(`./rfc/${index}.json`, JSON.stringify(rfc));
       }
     }
 
