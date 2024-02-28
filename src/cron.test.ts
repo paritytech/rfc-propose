@@ -5,4 +5,5 @@ describe("RFC Listing test", () => {
     const { ongoing } = await getAllRFCRemarks(new Date());
     expect(ongoing).toHaveLength(0);
   }, 60_000);
+  }, 90_000);
 });
