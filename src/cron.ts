@@ -70,14 +70,14 @@ export const getAllRFCRemarks = async (
     for (const index of Array.from(Array(query).keys())) {
       logger.info(`Fetching elements ${index + 1}/${query}`);
 
-      const refQuery = (await api.query.fellowshipReferenda.referendumInfoFor(index)).toJSON() as {
+      const refInfo = (await api.query.fellowshipReferenda.referendumInfoFor(index)).toJSON() as {
         ongoing?: OnGoing;
         approved?: [number, unknown | null, unknown | null];
       };
 
-      if (refQuery.ongoing) {
-        logger.info(`Found ongoing request: ${JSON.stringify(refQuery)}`);
-        const blockNr = refQuery.ongoing.submitted;
+      if (refInfo.ongoing) {
+        logger.info(`Found ongoing request: ${JSON.stringify(refInfo)}`);
+        const blockNr = refInfo.ongoing.submitted;
         const blockDate = await getBlockDate(blockNr, api);
 
         logger.debug(
@@ -89,7 +89,7 @@ export const getAllRFCRemarks = async (
           continue;
         }
 
-        const { proposal } = refQuery.ongoing;
+        const { proposal } = refInfo.ongoing;
         const hash = proposal?.lookup?.hash ?? proposal?.inline;
         if (hash) {
           ongoing.push({ hash, url: `https://collectives.polkassembly.io/referenda/${index}` });
@@ -99,9 +99,9 @@ export const getAllRFCRemarks = async (
           );
           continue;
         }
-      } else if (refQuery.approved) {
-        logger.debug(`Referendum has been approved: ${JSON.stringify(refQuery)}`);
-        const [approvalDate] = refQuery.approved;
+      } else if (refInfo.approved) {
+        logger.debug(`Referendum has been approved: ${JSON.stringify(refInfo)}`);
+        const [approvalDate] = refInfo.approved;
         const blockDate = await getBlockDate(approvalDate, api);
         if (startDate > blockDate) {
           logger.info(`Confirmation of referenda #${index} happened before the previous check. Ignoring.`);
@@ -119,7 +119,7 @@ export const getAllRFCRemarks = async (
           });
         }
       } else {
-        logger.debug(`Referendum state will not be handled ${JSON.stringify(refQuery)}`);
+        logger.debug(`Referendum state will not be handled ${JSON.stringify(refInfo)}`);
       }
     }
 
