@@ -99,27 +99,27 @@ export const getAllRFCRemarks = async (
           );
           continue;
         }
-      } else {
-        logger.debug(`Reference query is not ongoing: ${JSON.stringify(refQuery)}`);
-        if (refQuery.approved) {
-          const [approvalDate] = refQuery.approved;
-          const blockDate = await getBlockDate(approvalDate, api);
-          if (startDate > blockDate) {
-            logger.info(`Confirmation of referenda #${index} happened before the previous check. Ignoring.`);
-            continue;
-          }
-
-          logger.debug(`Fetching info from referenda ${index} from Subsquare`);
-          const rfc = await subsquareApi.fetchReferenda(index);
-          const confirmedBlock = rfc.onchainData.timeline.find(({ name }) => name === "Confirmed");
-          if (confirmedBlock) {
-            completed.push({
-              hash: rfc.onchainData.proposalHash,
-              executedHash: confirmedBlock.indexer.blockHash,
-              index,
-            });
-          }
+      } else if (refQuery.approved) {
+        logger.debug(`Referendum has been approved: ${JSON.stringify(refQuery)}`);
+        const [approvalDate] = refQuery.approved;
+        const blockDate = await getBlockDate(approvalDate, api);
+        if (startDate > blockDate) {
+          logger.info(`Confirmation of referenda #${index} happened before the previous check. Ignoring.`);
+          continue;
         }
+
+        logger.debug(`Fetching info from referenda ${index} from Subsquare`);
+        const rfc = await subsquareApi.fetchReferenda(index);
+        const confirmedBlock = rfc.onchainData.timeline.find(({ name }) => name === "Confirmed");
+        if (confirmedBlock) {
+          completed.push({
+            hash: rfc.onchainData.proposalHash,
+            executedHash: confirmedBlock.indexer.blockHash,
+            index,
+          });
+        }
+      } else {
+        logger.debug(`Referendum state will not be handled ${JSON.stringify(refQuery)}`);
       }
     }
 
