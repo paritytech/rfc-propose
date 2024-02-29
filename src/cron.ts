@@ -72,7 +72,7 @@ export const getAllRFCRemarks = async (
 
       const refQuery = (await api.query.fellowshipReferenda.referendumInfoFor(index)).toJSON() as {
         ongoing?: OnGoing;
-        approved?: (number | null)[];
+        approved?: [number, unknown | null, unknown | null];
       };
 
       if (refQuery.ongoing) {
@@ -102,15 +102,17 @@ export const getAllRFCRemarks = async (
       } else {
         logger.debug(`Reference query is not ongoing: ${JSON.stringify(refQuery)}`);
         if (refQuery.approved) {
+          const [approvalDate] = refQuery.approved;
+          const blockDate = await getBlockDate(approvalDate, api);
+          if (startDate > blockDate) {
+            logger.info(`Confirmation of referenda #${index} happened before the previous check. Ignoring.`);
+            continue;
+          }
+
           logger.debug(`Fetching info from referenda ${index} from Subsquare`);
           const rfc = await subsquareApi.fetchReferenda(index);
           const confirmedBlock = rfc.onchainData.timeline.find(({ name }) => name === "Confirmed");
           if (confirmedBlock) {
-            const blockDate = await getBlockDate(confirmedBlock.indexer.blockHeight, api);
-            if (startDate > blockDate) {
-              logger.info(`Confirmation of referenda #${index} happened before the previous check. Ignoring.`);
-              continue;
-            }
             completed.push({
               hash: rfc.onchainData.proposalHash,
               executedHash: confirmedBlock.indexer.blockHash,
