@@ -47,7 +47,7 @@ export const getAllPRs = async (
 };
 
 type OpenReferenda = { url: string; hash: string };
-type CompletedReferenda = { hash: string; executedHash: string; index: number };
+type CompletedReferenda = number;
 
 export const getAllRFCRemarks = async (
   startDate: Date,
@@ -66,7 +66,6 @@ export const getAllRFCRemarks = async (
     const ongoing: OpenReferenda[] = [];
     const completed: CompletedReferenda[] = [];
 
-    const subsquareApi = new SubsquareApi();
     for (const index of Array.from(Array(query).keys())) {
       logger.info(`Fetching elements ${index + 1}/${query}`);
 
@@ -108,16 +107,7 @@ export const getAllRFCRemarks = async (
           continue;
         }
 
-        logger.debug(`Fetching info from referenda ${index} from Subsquare`);
-        const rfc = await subsquareApi.fetchReferenda(index);
-        const confirmedBlock = rfc.onchainData.timeline.find(({ name }) => name === "Confirmed");
-        if (confirmedBlock) {
-          completed.push({
-            hash: rfc.onchainData.proposalHash,
-            executedHash: confirmedBlock.indexer.blockHash,
-            index,
-          });
-        }
+        completed.push(index);
       } else {
         logger.debug(`Referendum state will not be handled ${JSON.stringify(refInfo)}`);
       }
@@ -134,6 +124,27 @@ export const getAllRFCRemarks = async (
   }
 };
 
+const fetchCompletedReferendaInfo = async (
+  completedReferendas: CompletedReferenda[],
+): Promise<{ hash: string; executedHash: string; index: number }[]> => {
+  const subsquareApi = new SubsquareApi();
+  const referendas: { hash: string; executedHash: string; index: number }[] = [];
+  for (const index of completedReferendas) {
+    logger.debug(`Fetching info from referenda ${index} from Subsquare`);
+    const rfc = await subsquareApi.fetchReferenda(index);
+    const confirmedBlock = rfc.onchainData.timeline.find(({ name }) => name === "Confirmed");
+    if (confirmedBlock) {
+      referendas.push({
+        hash: rfc.onchainData.proposalHash,
+        executedHash: confirmedBlock.indexer.blockHash,
+        index,
+      });
+    }
+  }
+
+  return referendas;
+};
+
 export const cron = async (startDate: Date, owner: string, repo: string, octokit: OctokitInstance): Promise<void> => {
   const { ongoing, completed } = await getAllRFCRemarks(startDate);
   if (ongoing.length === 0 && completed.length === 0) {
@@ -141,6 +152,9 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
     await summary.addHeading("Referenda search", 3).addHeading("Found no matching referenda to open PRs", 5).write();
     return;
   }
+
+  const completedReferendas = await fetchCompletedReferendaInfo(completed);
+
   logger.debug(`Found remarks ${JSON.stringify(ongoing)}`);
   const prRemarks = await getAllPRs(octokit, { owner, repo });
   logger.debug(`Found all PR remarks ${JSON.stringify(prRemarks)}`);
@@ -169,14 +183,16 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
       }
 
       // if we don't find a match, we search for a closed referenda
-      const closedMatch = completed.find(({ hash }) => hash === tx.method.hash.toHex() || hash === tx.method.toHex());
-      if (closedMatch) {
+      const completedMatch = completedReferendas.find(
+        ({ hash }) => hash === tx.method.hash.toHex() || hash === tx.method.toHex(),
+      );
+      if (completedMatch) {
         logger.info(`Found completed referenda for PR #${pr}`);
-        const command = `/rfc process ${closedMatch.executedHash}`;
+        const command = `/rfc process ${completedMatch.executedHash}`;
         const msg = "PR can be merged. Write the following command to trigger the bot" + `\n\n\`${command}\``;
         rows.push([
           `${owner}/${repo}#${pr}`,
-          `<a href="https://collectives.polkassembly.io/referenda/${closedMatch.index}>RFC ${closedMatch.index}</a>`,
+          `<a href="https://collectives.polkassembly.io/referenda/${completedMatch.index}>RFC ${completedMatch.index}</a>`,
         ]);
         await octokit.rest.issues.createComment({ owner, repo, issue_number: pr, body: msg });
       }
