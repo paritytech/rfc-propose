@@ -1,4 +1,5 @@
 import fetch from "node-fetch";
+import { SUBSQUARE_API } from "./constants";
 
 interface ReferendaObject {
   _id: string;
@@ -32,7 +33,7 @@ interface ReferendaObject {
 export class SubsquareApi {
   private readonly url: string;
   constructor() {
-    this.url = "https://collectives.subsquare.io";
+    this.url = SUBSQUARE_API;
   }
 
   async fetchReferenda(index: number): Promise<ReferendaObject> {
