@@ -1,4 +1,5 @@
 import fetch from "node-fetch";
+
 import { SUBSQUARE_API } from "./constants";
 
 interface ReferendaObject {
