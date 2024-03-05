@@ -214,7 +214,7 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
       if (completedMatch) {
         logger.info(`Found finished referenda for PR #${pr} with state ${completedMatch.state}`);
         const command = `/rfc process ${completedMatch.executedHash}`;
-        const rejectedMsg = `Referenda voting has fnished with status \`${completedMatch.state}\``;
+        const rejectedMsg = `Referenda voting has finished with status \`${completedMatch.state}\``;
         const finishedMsg =
           "PR can be merged." + "\n\nWrite the following command to trigger the bot\n\n" + `\`${command}\``;
         rows.push([
