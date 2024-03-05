@@ -214,13 +214,9 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
       if (completedMatch) {
         logger.info(`Found finished referenda for PR #${pr} with state ${completedMatch.state}`);
         const command = `/rfc process ${completedMatch.executedHash}`;
-        const timeOutMsg = "Referenda voting has timed out";
+        const rejectedMsg = `Referenda voting has fnished with status \`${completedMatch.state}\``;
         const finishedMsg =
-          (completedMatch.state === "Executed"
-            ? "PR can be merged."
-            : `Referenda state is \`${completedMatch.state}\`. PR can be closed.`) +
-          "\n\nWrite the following command to trigger the bot\n\n" +
-          `\`${command}\``;
+          "PR can be merged." + "\n\nWrite the following command to trigger the bot\n\n" + `\`${command}\``;
         rows.push([
           `${owner}/${repo}#${pr}`,
           `<a href="https://collectives.polkassembly.io/referenda/${completedMatch.index}>RFC ${completedMatch.index}</a>`,
@@ -229,7 +225,7 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
           owner,
           repo,
           issue_number: pr,
-          body: completedMatch.state === "TimedOut" ? timeOutMsg : finishedMsg,
+          body: completedMatch.state === "Executed" ? finishedMsg : rejectedMsg,
         });
       }
     }
