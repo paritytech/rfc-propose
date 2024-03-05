@@ -2,7 +2,7 @@ import fetch from "node-fetch";
 
 import { SUBSQUARE_API } from "./constants";
 
-interface ReferendaObject {
+export interface ReferendaObject {
   _id: string;
   referendumIndex: number;
   title: string;
@@ -12,7 +12,7 @@ interface ReferendaObject {
   updatedAt: string;
   lastActivityAt: string;
   state: {
-    name: "Executed" | string;
+    name: "Executed" | "Rejected" | "TimedOut" | string;
   };
   onchainData: {
     /** Compare this to tx.method.hash.toHex() */
@@ -20,7 +20,7 @@ interface ReferendaObject {
     timeline: {
       _id: string;
       referendumIndex: number;
-      name: "Executed" | "Confirmed" | "ConfirmStarted" | "DecisionStarted";
+      name: "Executed" | "Confirmed" | "ConfirmStarted" | "DecisionStarted" | "Rejected" | "TimedOut";
       indexer: {
         blockHeight: number;
         /** Use this when generating the comment */

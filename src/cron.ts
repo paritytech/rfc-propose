@@ -4,7 +4,7 @@ import { ApiPromise, WsProvider } from "@polkadot/api";
 
 import { PROVIDER_URL } from "./constants";
 import { extractRfcResult } from "./parse-RFC";
-import { SubsquareApi } from "./subsquare";
+import { ReferendaObject, SubsquareApi } from "./subsquare";
 import { ActionLogger, OctokitInstance } from "./types";
 
 const logger: ActionLogger = {
@@ -47,11 +47,12 @@ export const getAllPRs = async (
 };
 
 type OpenReferenda = { url: string; hash: string };
-type CompletedReferenda = number;
+/** Either completed, rejected or timeout. Basically NOT active */
+type FinishedReferenda = number;
 
 export const getAllRFCRemarks = async (
   startDate: Date,
-): Promise<{ ongoing: OpenReferenda[]; completed: CompletedReferenda[] }> => {
+): Promise<{ ongoing: OpenReferenda[]; finished: FinishedReferenda[] }> => {
   const wsProvider = new WsProvider(PROVIDER_URL);
   try {
     const api = await ApiPromise.create({ provider: wsProvider });
@@ -64,14 +65,18 @@ export const getAllRFCRemarks = async (
 
     logger.info(`Available referendas: ${query}`);
     const ongoing: OpenReferenda[] = [];
-    const completed: CompletedReferenda[] = [];
+    const finished: FinishedReferenda[] = [];
 
     for (const index of Array.from(Array(query).keys())) {
       logger.info(`Fetching elements ${index + 1}/${query}`);
 
+      type Finished = [number, { who: string; amount: number } | null, unknown | null];
+
       const refInfo = (await api.query.fellowshipReferenda.referendumInfoFor(index)).toJSON() as {
         ongoing?: OnGoing;
-        approved?: [number, unknown | null, unknown | null];
+        approved?: Finished;
+        rejected?: Finished;
+        timedOut?: Finished;
       };
 
       if (refInfo.ongoing) {
@@ -98,24 +103,40 @@ export const getAllRFCRemarks = async (
           );
           continue;
         }
-      } else if (refInfo.approved) {
-        logger.debug(`Referendum has been approved: ${JSON.stringify(refInfo)}`);
-        const [approvalDate] = refInfo.approved;
-        const blockDate = await getBlockDate(approvalDate, api);
-        if (startDate > blockDate) {
-          logger.info(`Confirmation of referenda #${index} happened before the previous check. Ignoring.`);
+      } else {
+        const extractDate = (): number | null => {
+          const { approved, rejected, timedOut } = refInfo;
+          if (approved) {
+            return approved[0];
+          } else if (rejected) {
+            return rejected[0];
+          } else if (timedOut) {
+            return timedOut[0];
+          }
+
+          return null;
+        };
+
+        const date = extractDate();
+
+        if (!date) {
+          logger.warn(`Referendum state will not be handled ${JSON.stringify(refInfo)}`);
           continue;
         }
 
-        completed.push(index);
-      } else {
-        logger.debug(`Referendum state will not be handled ${JSON.stringify(refInfo)}`);
+        const blockDate = await getBlockDate(date, api);
+        if (startDate > blockDate) {
+          logger.info(`Completed state for referenda #${index} happened before the previous check. Ignoring.`);
+          continue;
+        }
+
+        finished.push(index);
       }
     }
 
-    logger.info(`Found ${ongoing.length} ongoing and ${completed.length} completed requests`);
+    logger.info(`Found ${ongoing.length} ongoing and ${finished.length} completed requests`);
 
-    return { completed, ongoing };
+    return { ongoing, finished };
   } catch (err) {
     logger.error("Error during exectuion");
     throw err;
@@ -124,20 +145,24 @@ export const getAllRFCRemarks = async (
   }
 };
 
-const fetchCompletedReferendaInfo = async (
-  completedReferendas: CompletedReferenda[],
-): Promise<{ hash: string; executedHash: string; index: number }[]> => {
+const fetchFinishedReferendaInfo = async (
+  completedReferendas: FinishedReferenda[],
+): Promise<{ hash: string; executedHash: string; index: number; state: ReferendaObject["state"]["name"] }[]> => {
   const subsquareApi = new SubsquareApi();
-  const referendas: { hash: string; executedHash: string; index: number }[] = [];
+  const referendas: { hash: string; executedHash: string; index: number; state: ReferendaObject["state"]["name"] }[] =
+    [];
   for (const index of completedReferendas) {
     logger.debug(`Fetching info from referenda ${index} from Subsquare`);
     const rfc = await subsquareApi.fetchReferenda(index);
-    const confirmedBlock = rfc.onchainData.timeline.find(({ name }) => name === "Confirmed");
-    if (confirmedBlock) {
+    const finishedBlock = rfc.onchainData.timeline.find(
+      ({ name }) => name === "Confirmed" || name === "Rejected" || name === "TimedOut",
+    );
+    if (finishedBlock) {
       referendas.push({
         hash: rfc.onchainData.proposalHash,
-        executedHash: confirmedBlock.indexer.blockHash,
+        executedHash: finishedBlock.indexer.blockHash,
         index,
+        state: rfc.state.name,
       });
     }
   }
@@ -146,14 +171,14 @@ const fetchCompletedReferendaInfo = async (
 };
 
 export const cron = async (startDate: Date, owner: string, repo: string, octokit: OctokitInstance): Promise<void> => {
-  const { ongoing, completed } = await getAllRFCRemarks(startDate);
-  if (ongoing.length === 0 && completed.length === 0) {
+  const { ongoing, finished } = await getAllRFCRemarks(startDate);
+  if (ongoing.length === 0 && finished.length === 0) {
     logger.warn("No RFCs made from pull requests found. Shuting down");
     await summary.addHeading("Referenda search", 3).addHeading("Found no matching referenda to open PRs", 5).write();
     return;
   }
 
-  const completedReferendas = await fetchCompletedReferendaInfo(completed);
+  const finishedReferendas = await fetchFinishedReferendaInfo(finished);
 
   logger.debug(`Found remarks ${JSON.stringify(ongoing)}`);
   const prRemarks = await getAllPRs(octokit, { owner, repo });
@@ -183,13 +208,18 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
       }
 
       // if we don't find a match, we search for a closed referenda
-      const completedMatch = completedReferendas.find(
+      const completedMatch = finishedReferendas.find(
         ({ hash }) => hash === tx.method.hash.toHex() || hash === tx.method.toHex(),
       );
       if (completedMatch) {
-        logger.info(`Found completed referenda for PR #${pr}`);
+        logger.info(`Found finished referenda for PR #${pr} with state ${completedMatch.state}`);
         const command = `/rfc process ${completedMatch.executedHash}`;
-        const msg = "PR can be merged. Write the following command to trigger the bot" + `\n\n\`${command}\``;
+        const msg =
+          (completedMatch.state === "Executed"
+            ? "PR can be merged."
+            : `Referenda state is \`${completedMatch.state}\`. PR can be closed.`) +
+          "\n\nWrite the following command to trigger the bot\n\n" +
+          `\`${command}\``;
         rows.push([
           `${owner}/${repo}#${pr}`,
           `<a href="https://collectives.polkassembly.io/referenda/${completedMatch.index}>RFC ${completedMatch.index}</a>`,
