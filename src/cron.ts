@@ -214,7 +214,8 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
       if (completedMatch) {
         logger.info(`Found finished referenda for PR #${pr} with state ${completedMatch.state}`);
         const command = `/rfc process ${completedMatch.executedHash}`;
-        const msg =
+        const timeOutMsg = "Referenda voting has timed out";
+        const finishedMsg =
           (completedMatch.state === "Executed"
             ? "PR can be merged."
             : `Referenda state is \`${completedMatch.state}\`. PR can be closed.`) +
@@ -224,7 +225,12 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
           `${owner}/${repo}#${pr}`,
           `<a href="https://collectives.polkassembly.io/referenda/${completedMatch.index}>RFC ${completedMatch.index}</a>`,
         ]);
-        await octokit.rest.issues.createComment({ owner, repo, issue_number: pr, body: msg });
+        await octokit.rest.issues.createComment({
+          owner,
+          repo,
+          issue_number: pr,
+          body: completedMatch.state === "TimedOut" ? timeOutMsg : finishedMsg,
+        });
       }
     }
   } catch (e) {
