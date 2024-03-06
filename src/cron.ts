@@ -104,20 +104,8 @@ export const getAllRFCRemarks = async (
           continue;
         }
       } else {
-        const extractDate = (): number | null => {
-          const { approved, rejected, timedOut } = refInfo;
-          if (approved) {
-            return approved[0];
-          } else if (rejected) {
-            return rejected[0];
-          } else if (timedOut) {
-            return timedOut[0];
-          }
-
-          return null;
-        };
-
-        const date = extractDate();
+        const { approved, rejected, timedOut } = refInfo;  
+        const date = approved?.[0] ?? rejected?.[0] ?? timedOut?.[0] ?? null;
 
         if (!date) {
           logger.warn(`Referendum state will not be handled ${JSON.stringify(refInfo)}`);
