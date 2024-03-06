@@ -104,7 +104,7 @@ export const getAllRFCRemarks = async (
           continue;
         }
       } else {
-        const { approved, rejected, timedOut } = refInfo;  
+        const { approved, rejected, timedOut } = refInfo;
         const date = approved?.[0] ?? rejected?.[0] ?? timedOut?.[0] ?? null;
 
         if (!date) {
@@ -162,7 +162,7 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
   const { ongoing, finished } = await getAllRFCRemarks(startDate);
   if (ongoing.length === 0 && finished.length === 0) {
     logger.warn("No RFCs made from pull requests found. Shuting down");
-    await summary.addHeading("Referenda search", 3).addHeading("Found no matching referenda to open PRs", 5).write();
+    await summary.addHeading("Referenda search", 3).addHeading("Found no matching referenda since last run", 5).write();
     return;
   }
 
@@ -176,6 +176,7 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
     [
       { data: "PR", header: true },
       { data: "Referenda", header: true },
+      { data: "Status", header: true },
     ],
   ];
 
@@ -208,6 +209,7 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
         rows.push([
           `${owner}/${repo}#${pr}`,
           `<a href="https://collectives.polkassembly.io/referenda/${completedMatch.index}>RFC ${completedMatch.index}</a>`,
+          completedMatch.state,
         ]);
         await octokit.rest.issues.createComment({
           owner,
@@ -224,11 +226,15 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
     await wsProvider.disconnect();
   }
 
-  await summary
-    .addHeading("Referenda search", 3)
-    .addHeading(`Found ${rows.length - 1} PRs matching ongoing referendas`, 5)
-    .addTable(rows)
-    .write();
+  if (rows.length > 1) {
+    await summary
+      .addHeading("Referenda search", 3)
+      .addHeading(`Found ${rows.length - 1} PRs matching ongoing referendas`, 5)
+      .addTable(rows)
+      .write();
+  } else {
+    await summary.addHeading("Referenda search", 3).addHeading("Found no matching referenda to open PRs", 5).write();
+  }
 
   logger.info("Finished run");
 };
