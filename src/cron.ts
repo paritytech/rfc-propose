@@ -77,6 +77,8 @@ export const getAllRFCRemarks = async (
         approved?: Finished;
         rejected?: Finished;
         timedOut?: Finished;
+        killed?: Finished;
+        cancelled?: Finished;
       };
 
       if (refInfo.ongoing) {
@@ -104,8 +106,8 @@ export const getAllRFCRemarks = async (
           continue;
         }
       } else {
-        const { approved, rejected, timedOut } = refInfo;
-        const date = approved?.[0] ?? rejected?.[0] ?? timedOut?.[0] ?? null;
+        const { approved, rejected, timedOut, killed, cancelled } = refInfo;
+        const date = approved?.[0] ?? rejected?.[0] ?? timedOut?.[0] ?? killed?.[0] ?? cancelled?.[0] ?? null;
 
         if (!date) {
           logger.warn(`Referendum state will not be handled ${JSON.stringify(refInfo)}`);
@@ -143,7 +145,8 @@ const fetchFinishedReferendaInfo = async (
     logger.debug(`Fetching info from referenda ${index} from Subsquare`);
     const rfc = await subsquareApi.fetchReferenda(index);
     const finishedBlock = rfc.onchainData.timeline.find(
-      ({ name }) => name === "Confirmed" || name === "Rejected" || name === "TimedOut",
+      ({ name }) =>
+        name === "Confirmed" || name === "Rejected" || name === "TimedOut" || name === "Killed" || name === "Cancelled",
     );
     if (finishedBlock) {
       referendas.push({
