@@ -70,7 +70,7 @@ export const getAllRFCRemarks = async (
     for (const index of Array.from(Array(query).keys())) {
       logger.info(`Fetching elements ${index + 1}/${query}`);
 
-      type Finished = [number, { who: string; amount: number } | null, unknown | null];
+      type Finished = [number, ...unknown[]];
 
       const refInfo = (await api.query.fellowshipReferenda.referendumInfoFor(index)).toJSON() as {
         ongoing?: OnGoing;
@@ -206,8 +206,8 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
       if (completedMatch) {
         logger.info(`Found finished referenda for PR #${pr} with state ${completedMatch.state}`);
         const command = `/rfc process ${completedMatch.executedHash}`;
-        const rejectedMsg = `Referenda voting has finished with status \`${completedMatch.state}\``;
-        const finishedMsg =
+        const nonApprovedMsg = `Referenda voting has finished with status \`${completedMatch.state}\``;
+        const approvedMsg =
           "PR can be merged." + "\n\nWrite the following command to trigger the bot\n\n" + `\`${command}\``;
         rows.push([
           `${owner}/${repo}#${pr}`,
@@ -218,7 +218,7 @@ export const cron = async (startDate: Date, owner: string, repo: string, octokit
           owner,
           repo,
           issue_number: pr,
-          body: completedMatch.state === "Executed" ? finishedMsg : rejectedMsg,
+          body: completedMatch.state === "Executed" ? approvedMsg : nonApprovedMsg,
         });
       }
     }
