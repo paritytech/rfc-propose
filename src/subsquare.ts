@@ -20,7 +20,15 @@ export interface ReferendaObject {
     timeline: {
       _id: string;
       referendumIndex: number;
-      name: "Executed" | "Confirmed" | "ConfirmStarted" | "DecisionStarted" | "Rejected" | "TimedOut";
+      name:
+        | "Executed"
+        | "Confirmed"
+        | "ConfirmStarted"
+        | "DecisionStarted"
+        | "Rejected"
+        | "TimedOut"
+        | "Killed"
+        | "Cancelled";
       indexer: {
         blockHeight: number;
         /** Use this when generating the comment */
