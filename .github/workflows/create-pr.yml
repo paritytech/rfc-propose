@@ -1,0 +1,47 @@
+name: Create a test PR after merge
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pr:
+    name: Create a test PR after merge 
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # We need a fresh base branch every time,
+      # so that it doesn't contain the text that we want to merge with the PR.
+      - name: Generate branch names
+        id: generate_branches
+        run: |
+          timestamp=$(date +%Y-%m-%dT%H-%M)
+          echo "base_branch=test_base_$timestamp" >> $GITHUB_OUTPUT
+          echo "head_branch=test_head_$timestamp" >> $GITHUB_OUTPUT
+      
+      - name: Create a base branch
+        run: |
+          git push origin HEAD:${{ steps.generate_branches.outputs.base_branch }}
+      
+      - name: Create the changes for the PR
+        run: |
+          mkdir text
+          cp src/examples/0014-improve-locking-mechanism-for-parachains.md ./text/
+
+      - name: Create a test PR
+        uses: peter-evans/create-pull-request@5b4a9f6a9e2af26e5f02351490b90d01eb8ec1e5 # v5
+        with:
+          base: ${{ steps.generate_branches.outputs.base_branch }}
+          branch: ${{ steps.generate_branches.outputs.head_branch }}
+          add-paths: |
+            text/*.md
+          title: "[Post-merge test] A test PR for testing the action"
+          body: "@paritytech/opstooling This is a test PR created automatically because a recent change has been merged to master.\nUse `/rfc process 0x39fbc57d047c71f553aa42824599a7686aea5c9aab4111f6b836d35d3d058162` to process the PR and test out the code on `main`."
