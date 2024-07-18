@@ -22,7 +22,7 @@ export const createReferendumTx = async (opts: {
   const submitTx = api.tx.fellowshipReferenda.submit(
     { FellowshipOrigins: "Fellows" },
     { Inline: remarkTx.method.toHex() },
-    { After: 0 },
+    { After: 10 },
   );
 
   const transactionHex: string = submitTx.method.toHex();
