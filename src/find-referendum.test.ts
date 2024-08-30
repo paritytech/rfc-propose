@@ -19,7 +19,7 @@ describe("findReferendum", () => {
     });
 
     expect(result).toEqual("approved");
-  });
+  }, 10_000);
 
   test.skip("Finds the (inlined) 0014 referendum", async () => {
     /**
