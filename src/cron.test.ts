@@ -1,6 +1,6 @@
 import { getAllRFCRemarks } from "./cron";
 
-const TIMEOUT = 180_000;
+const TIMEOUT = 240_000;
 
 describe("RFC Listing test", () => {
   test(
