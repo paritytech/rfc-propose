@@ -1,5 +1,3 @@
-import fetch from "node-fetch";
-
 import { OctokitInstance, RequestResultFailed, RequestState } from "./types";
 import { hashProposal, userProcessError } from "./util";
 

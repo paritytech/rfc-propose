@@ -11,12 +11,12 @@ permissions:
 
 jobs:
   create-pr:
-    name: Create a test PR after merge 
+    name: Create a test PR after merge
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # We need a fresh base branch every time,
       # so that it doesn't contain the text that we want to merge with the PR.
@@ -26,11 +26,11 @@ jobs:
           timestamp=$(date +%Y-%m-%dT%H-%M)
           echo "base_branch=test_base_$timestamp" >> $GITHUB_OUTPUT
           echo "head_branch=test_head_$timestamp" >> $GITHUB_OUTPUT
-      
+
       - name: Create a base branch
         run: |
           git push origin HEAD:${{ steps.generate_branches.outputs.base_branch }}
-      
+
       - name: Create the changes for the PR
         run: |
           mkdir text
